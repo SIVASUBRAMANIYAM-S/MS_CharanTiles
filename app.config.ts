@@ -11,34 +11,42 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   ios: {
     bundleIdentifier: 'com.mscharan.tiles',
-    icon: './assets/expo.icon',
   },
   android: {
     package: 'com.mscharan.tiles',
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
-      foregroundImage: './assets/images/android-icon-foreground.png',
-      backgroundImage: './assets/images/android-icon-background.png',
-      monochromeImage: './assets/images/android-icon-monochrome.png',
+      foregroundImage: './assets/images/adaptive-icon.png',
+      // White-on-transparent, so it doubles as the Android 13+ themed-icon mask.
+      monochromeImage: './assets/images/adaptive-icon.png',
+      backgroundColor: '#1B4F9C', // colors.primary
     },
     predictiveBackGestureEnabled: false,
   },
   web: {
     output: 'static',
     favicon: './assets/images/favicon.png',
+    // PWA splash. SDK 57 has no top-level `splash` key — the native iOS/Android
+    // splash is configured by the expo-splash-screen plugin below.
+    splash: {
+      image: './assets/images/splash-icon.png',
+      resizeMode: 'contain',
+      backgroundColor: '#0F2A5C', // colors.navy
+    },
   },
   plugins: [
     'expo-router',
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#208AEF',
         image: './assets/images/splash-icon.png',
-        imageWidth: 76,
+        resizeMode: 'contain',
+        backgroundColor: '#0F2A5C', // colors.navy
+        imageWidth: 200,
       },
     ],
     'expo-secure-store',
     'expo-image',
+    'expo-font',
   ],
   experiments: {
     typedRoutes: true,
