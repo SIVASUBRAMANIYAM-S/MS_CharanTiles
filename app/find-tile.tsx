@@ -4,7 +4,6 @@ import { Stack } from 'expo-router';
 import { Camera, ImageSquare, WarningCircle } from '@/components/ui/icons';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
-import { getColors } from 'react-native-image-colors';
 
 import { ProductGrid } from '@/components/catalog/ProductGrid';
 import { Button } from '@/components/ui/Button';
@@ -30,6 +29,24 @@ export default function FindTileScreen() {
     setPhotoUri(uri);
     setStatus('extracting');
     setErrorMessage(null);
+
+    // Loaded lazily (not as a top-level import): react-native-image-colors
+    // resolves its native module as soon as it's imported, which throws in
+    // Expo Go or any build that hasn't been rebuilt since it was added. A
+    // top-level import would crash this whole route before it ever renders;
+    // deferring it here lets the screen still open and fail gracefully.
+    let getColors: (typeof import('react-native-image-colors'))['getColors'];
+    try {
+      ({ getColors } = await import('react-native-image-colors'));
+    } catch (error) {
+      console.warn('react-native-image-colors native module unavailable', error);
+      setErrorMessage(
+        'Photo matching needs the full app build and is not available in this preview.',
+      );
+      setStatus('error');
+      return;
+    }
+
     try {
       const result = await getColors(uri, { fallback: '#1B4F9C', quality: 'low', cache: false });
       const hex = extractDominantHex(result);
