@@ -14,6 +14,7 @@ export const colors = {
   border: '#D4D1C8',
   error: '#C62828',
   warning: '#E08A1E',
+  success: '#2E7D32',
   glassOverlay: 'rgba(255, 255, 255, 0.35)',
   shadow: '#000000',
 } as const;

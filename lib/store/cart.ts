@@ -2,6 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import {
+  getCartItems,
+  removeCartItem,
+  setCartItemQuantity,
+  upsertCartItem,
+} from '@/lib/queries/cart';
+
 export type CartItem = {
   productId: string;
   variantId: string | null;
@@ -10,14 +17,28 @@ export type CartItem = {
 
 type CartState = {
   items: CartItem[];
-  addItem: (productId: string, variantId: string | null, quantity?: number) => void;
-  removeItem: (productId: string, variantId: string | null) => void;
-  updateQuantity: (productId: string, variantId: string | null, quantity: number) => void;
+  hydrated: boolean;
+  /** Pulls the remote cart_items for this session down into local state, or — if
+   * this is a cart that was only ever local (e.g. Phase 4/5 data predating sync,
+   * or an offline add that hasn't synced yet) — pushes it up instead. */
+  hydrate: (userId: string) => Promise<void>;
+  addItem: (
+    userId: string | undefined,
+    productId: string,
+    variantId: string | null,
+    quantity?: number,
+  ) => void;
+  removeItem: (userId: string | undefined, productId: string, variantId: string | null) => void;
+  updateQuantity: (
+    userId: string | undefined,
+    productId: string,
+    variantId: string | null,
+    quantity: number,
+  ) => void;
   totalCount: () => number;
   clear: () => void;
 };
 
-// Local-only this phase (see Phase 4 plan) — synced to Supabase cart_items in Phase 6.
 function sameLine(item: CartItem, productId: string, variantId: string | null) {
   return item.productId === productId && item.variantId === variantId;
 }
@@ -26,8 +47,40 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      hydrated: false,
 
-      addItem: (productId, variantId, quantity = 1) => {
+      hydrate: async (userId) => {
+        try {
+          const remoteRows = await getCartItems(userId);
+          if (remoteRows.length > 0) {
+            set({
+              items: remoteRows.map((row) => ({
+                productId: row.product_id,
+                variantId: row.variant_id,
+                quantity: row.quantity,
+              })),
+              hydrated: true,
+            });
+          } else if (get().items.length > 0) {
+            // Local-only cart from before sync existed (or added while offline) — push it up.
+            await Promise.all(
+              get().items.map((item) =>
+                upsertCartItem(userId, item.productId, item.variantId, item.quantity),
+              ),
+            );
+            set({ hydrated: true });
+          } else {
+            set({ hydrated: true });
+          }
+        } catch (error) {
+          console.warn('Failed to hydrate cart', error);
+          set({ hydrated: true });
+        }
+      },
+
+      // Optimistic: updates local state immediately (and AsyncStorage, via persist),
+      // then writes through to cart_items. See lib/store/wishlist.ts for the same pattern.
+      addItem: (userId, productId, variantId, quantity = 1) => {
         const existing = get().items.find((item) => sameLine(item, productId, variantId));
         if (existing) {
           set({
@@ -40,15 +93,25 @@ export const useCartStore = create<CartState>()(
         } else {
           set({ items: [...get().items, { productId, variantId, quantity }] });
         }
+        if (userId) {
+          upsertCartItem(userId, productId, variantId, quantity).catch((error: unknown) =>
+            console.warn('Failed to sync cart add', error),
+          );
+        }
       },
 
-      removeItem: (productId, variantId) => {
+      removeItem: (userId, productId, variantId) => {
         set({ items: get().items.filter((item) => !sameLine(item, productId, variantId)) });
+        if (userId) {
+          removeCartItem(userId, productId, variantId).catch((error: unknown) =>
+            console.warn('Failed to sync cart remove', error),
+          );
+        }
       },
 
-      updateQuantity: (productId, variantId, quantity) => {
+      updateQuantity: (userId, productId, variantId, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(productId, variantId);
+          get().removeItem(userId, productId, variantId);
           return;
         }
         set({
@@ -56,18 +119,26 @@ export const useCartStore = create<CartState>()(
             sameLine(item, productId, variantId) ? { ...item, quantity } : item,
           ),
         });
+        if (userId) {
+          setCartItemQuantity(userId, productId, variantId, quantity).catch((error: unknown) =>
+            console.warn('Failed to sync cart quantity', error),
+          );
+        }
       },
 
       totalCount: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
 
       // Called on sign-out: the old session's cart belongs to a user_id with no
       // active session anymore. Goes through persist's own `set`, so it clears
-      // the AsyncStorage copy too, not just in-memory state.
-      clear: () => set({ items: [] }),
+      // the AsyncStorage copy too, not just in-memory state. Remote rows for the
+      // old (now sessionless) user are left as-is — harmless, and out of scope
+      // for this POC's sign-out to clean up.
+      clear: () => set({ items: [], hydrated: false }),
     }),
     {
       name: 'mscharantiles.cart',
       storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ items: state.items }),
     },
   ),
 );

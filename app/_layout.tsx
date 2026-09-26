@@ -13,6 +13,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { BrandSplash } from '@/components/BrandSplash';
 import { useAuthStore } from '@/lib/store/auth';
+import { useCartStore } from '@/lib/store/cart';
 import { useWishlistStore } from '@/lib/store/wishlist';
 
 SplashScreen.preventAutoHideAsync();
@@ -33,7 +34,9 @@ export default function RootLayout() {
   const authUser = useAuthStore((state) => state.user);
   const authInit = useAuthStore((state) => state.init);
   const hydrateWishlist = useWishlistStore((state) => state.hydrate);
+  const hydrateCart = useCartStore((state) => state.hydrate);
   const wishlistHydratedFor = useRef<string | null>(null);
+  const cartHydratedFor = useRef<string | null>(null);
 
   useEffect(() => {
     if (fontsReady) {
@@ -48,6 +51,13 @@ export default function RootLayout() {
       hydrateWishlist(authUser.id);
     }
   }, [authUser, hydrateWishlist]);
+
+  useEffect(() => {
+    if (authUser && cartHydratedFor.current !== authUser.id) {
+      cartHydratedFor.current = authUser.id;
+      hydrateCart(authUser.id);
+    }
+  }, [authUser, hydrateCart]);
 
   if (!fontsReady) {
     return null;

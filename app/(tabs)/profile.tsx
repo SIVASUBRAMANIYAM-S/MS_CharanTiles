@@ -129,6 +129,14 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={18} color={colors.muted} />
             </View>
           </Card>
+
+          <Card onPress={() => router.push('/order')}>
+            <View style={styles.shortcutRow}>
+              <Ionicons name="receipt-outline" size={20} color={colors.primary} />
+              <Text style={styles.shortcutLabel}>Order History</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+            </View>
+          </Card>
         </View>
       )}
 
