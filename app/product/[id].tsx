@@ -95,7 +95,7 @@ export default function ProductScreen() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addToCart(product.id, selectedVariantId);
+    addToCart(userId, product.id, selectedVariantId);
     setAddedMessage(true);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setAddedMessage(false), 1800);
