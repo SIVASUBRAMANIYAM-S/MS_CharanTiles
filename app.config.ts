@@ -47,6 +47,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-secure-store',
     'expo-image',
     'expo-font',
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Allow MS Charan Tiles to access your photos to find a matching tile.',
+        cameraPermission: 'Allow MS Charan Tiles to use your camera to find a matching tile.',
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
