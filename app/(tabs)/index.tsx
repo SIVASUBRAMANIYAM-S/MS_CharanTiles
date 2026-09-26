@@ -142,6 +142,15 @@ export default function HomeScreen() {
           </ScrollView>
         )}
       </Section>
+
+      {/* Standalone enquiry entry point: the only other way in is a product page. */}
+      <View style={styles.enquiryBand}>
+        <Text style={typography.h3}>Planning a project?</Text>
+        <Text style={styles.enquiryBody}>
+          Tell us about your space and our team will help you choose the right tiles.
+        </Text>
+        <Button label="Send an enquiry" onPress={() => router.push('/enquiry')} />
+      </View>
     </ScrollView>
   );
 }
@@ -168,4 +177,13 @@ const styles = StyleSheet.create({
   hScrollContent: { gap: 12, paddingRight: 16 },
   productCardWrap: { width: 150 },
   emptyText: { ...typography.body, color: colors.muted },
+  enquiryBand: {
+    marginHorizontal: 16,
+    padding: 20,
+    gap: 8,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    alignItems: 'flex-start',
+  },
+  enquiryBody: { ...typography.body, color: colors.muted, marginBottom: 8 },
 });

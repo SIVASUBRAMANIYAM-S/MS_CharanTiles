@@ -31,6 +31,13 @@ export const cardExpirySchema = z
 export const cardCvvSchema = z.string().regex(/^\d{3,4}$/, 'Enter a valid CVV');
 export const cardNameSchema = z.string().trim().min(2, 'Enter the name on the card');
 
+// --- Enquiry form ---
+export const optionalEmailSchema = z
+  .string()
+  .trim()
+  .refine((value) => value === '' || z.email().safeParse(value).success, 'Enter a valid email');
+export const enquiryMessageSchema = z.string().max(1000, 'Keep your message under 1000 characters');
+
 /** Always-valid mock card — autofilled by the "Use test card" shortcut, never charged for real. */
 export const TEST_CARD = {
   number: '4242 4242 4242 4242',
