@@ -14,6 +14,7 @@ type CartState = {
   removeItem: (productId: string, variantId: string | null) => void;
   updateQuantity: (productId: string, variantId: string | null, quantity: number) => void;
   totalCount: () => number;
+  clear: () => void;
 };
 
 // Local-only this phase (see Phase 4 plan) — synced to Supabase cart_items in Phase 6.
@@ -58,6 +59,11 @@ export const useCartStore = create<CartState>()(
       },
 
       totalCount: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
+
+      // Called on sign-out: the old session's cart belongs to a user_id with no
+      // active session anymore. Goes through persist's own `set`, so it clears
+      // the AsyncStorage copy too, not just in-memory state.
+      clear: () => set({ items: [] }),
     }),
     {
       name: 'mscharantiles.cart',
