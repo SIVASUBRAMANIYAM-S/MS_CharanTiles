@@ -1,8 +1,7 @@
 import { forwardRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native';
+import { Text, TextInput, type TextInputProps, View } from 'react-native';
 
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 type InputProps = TextInputProps & {
   label: string;
@@ -15,16 +14,19 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
   ref,
 ) {
   const [focused, setFocused] = useState(false);
+  const { colors } = useTheme();
+  const styles = useStyles();
   const hasError = Boolean(error);
-  const accent = hasError ? colors.error : focused ? colors.primary : colors.ink;
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: accent }]}>{label}</Text>
+      <Text style={[styles.label, hasError && styles.labelError]}>{label}</Text>
       <TextInput
         ref={ref}
         accessibilityLabel={label}
-        placeholderTextColor={colors.muted}
+        placeholderTextColor={colors.textFaint}
+        selectionColor={colors.accent}
+        cursorColor={colors.accent}
         onFocus={(e) => {
           setFocused(true);
           onFocus?.(e);
@@ -45,21 +47,22 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
   );
 });
 
-const styles = StyleSheet.create({
-  container: { gap: 6 },
-  label: { ...typography.caption, fontFamily: typography.bodyMedium.fontFamily },
+const useStyles = makeStyles((c) => ({
+  container: { gap: 8 },
+  label: { ...typography.label, color: c.textMuted },
+  labelError: { color: c.error },
   input: {
     ...typography.body,
-    color: colors.ink,
-    backgroundColor: colors.white,
+    color: c.text,
+    backgroundColor: c.surfaceAlt,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 12,
+    borderColor: c.surfaceAlt,
+    borderRadius: radius.md,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 13,
   },
-  inputFocused: { borderColor: colors.primary },
-  inputError: { borderColor: colors.error },
-  message: { ...typography.caption, color: colors.muted },
-  errorText: { color: colors.error },
-});
+  inputFocused: { borderColor: c.accent },
+  inputError: { borderColor: c.error },
+  message: { ...typography.caption, color: c.textMuted },
+  errorText: { color: c.error },
+}));

@@ -1,30 +1,25 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { SquaresFour } from '@/components/ui/icons';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
-import { ProductGrid } from '@/components/catalog/ProductGrid';
 import { FilterSheet, type FilterSheetHandle } from '@/components/catalog/FilterSheet';
-import { Chip } from '@/components/ui/Chip';
+import { ProductGrid } from '@/components/catalog/ProductGrid';
+import { SortFilterBar } from '@/components/catalog/SortFilterBar';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { type Category, getCategoryBySlug } from '@/lib/queries/categories';
 import {
   getCategoryFilterOptions,
   getProductsByCategory,
   type ProductCardData,
   type ProductFilters,
-  type SortOrder,
 } from '@/lib/queries/products';
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
-
-const SORT_OPTIONS: { value: SortOrder; label: string }[] = [
-  { value: 'featured', label: 'Featured' },
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-];
+import { makeStyles, typography, useTheme } from '@/lib/theme';
 
 export default function CategoryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const sheetRef = useRef<FilterSheetHandle>(null);
 
   const [category, setCategory] = useState<Category | null | undefined>(undefined);
@@ -64,58 +59,39 @@ export default function CategoryScreen() {
       });
   }, [category, filters]);
 
-  const activeFilterCount =
-    (filters.finish?.length ?? 0) +
-    (filters.size?.length ?? 0) +
-    (filters.color?.length ?? 0) +
-    (filters.minPrice !== undefined ? 1 : 0) +
-    (filters.maxPrice !== undefined ? 1 : 0);
-
   if (category === null) {
     return (
-      <View style={styles.centered}>
-        <Text style={typography.body}>Category not found.</Text>
+      <View style={styles.container}>
+        <EmptyState
+          icon={<SquaresFour size={30} color={colors.accentInk} />}
+          title="Room not found"
+          actionLabel="Browse catalog"
+          onAction={() => router.replace('/catalog')}
+        />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: category?.name ?? 'Category' }} />
-
-      <View style={styles.toolbar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortScroll}>
-          <View style={styles.sortRow}>
-            {SORT_OPTIONS.map((option) => (
-              <Chip
-                key={option.value}
-                label={option.label}
-                selected={filters.sort === option.value}
-                onPress={() => setFilters((prev) => ({ ...prev, sort: option.value }))}
-              />
-            ))}
-          </View>
-        </ScrollView>
-        <Pressable
-          onPress={() => sheetRef.current?.present()}
-          style={styles.filterButton}
-          accessibilityRole="button"
-          accessibilityLabel="Filters"
-        >
-          <Ionicons name="options-outline" size={20} color={colors.ink} />
-          {activeFilterCount > 0 && (
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-            </View>
-          )}
-        </Pressable>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content}>
-        <ProductGrid
-          products={products}
-          emptyMessage="No tiles match your filters. Try resetting them."
-        />
+      <Stack.Screen options={{ title: category?.name ?? '' }} />
+      <ScrollView contentContainerStyle={styles.content} stickyHeaderIndices={[1]}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{category?.name ?? ' '}</Text>
+          <Text style={styles.count}>
+            {products ? `${products.length} ${products.length === 1 ? 'tile' : 'tiles'}` : ' '}
+          </Text>
+        </View>
+        <View style={styles.sticky}>
+          <SortFilterBar
+            filters={filters}
+            onSortChange={(sort) => setFilters((prev) => ({ ...prev, sort }))}
+            onOpenFilters={() => sheetRef.current?.present()}
+          />
+        </View>
+        <View style={styles.grid}>
+          <ProductGrid products={products} emptyMessage="No tiles match these filters" />
+        </View>
       </ScrollView>
 
       <FilterSheet
@@ -130,42 +106,12 @@ export default function CategoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.stone },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  toolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.white,
-  },
-  sortScroll: { flex: 1 },
-  sortRow: { flexDirection: 'row', gap: 8 },
-  filterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 3,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterBadgeText: { color: colors.white, fontSize: 11, fontWeight: '600' },
-  content: { padding: 16 },
-});
+const useStyles = makeStyles((c) => ({
+  container: { flex: 1, backgroundColor: c.bg },
+  content: { paddingBottom: 40 },
+  header: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, gap: 2 },
+  title: { ...typography.h1, color: c.text },
+  count: { ...typography.body, color: c.textMuted },
+  sticky: { backgroundColor: c.bg, paddingVertical: 10 },
+  grid: { paddingHorizontal: 16, paddingTop: 8 },
+}));

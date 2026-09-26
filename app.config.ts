@@ -30,7 +30,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     splash: {
       image: './assets/images/splash-icon.png',
       resizeMode: 'contain',
-      backgroundColor: '#0F2A5C', // colors.navy
+      backgroundColor: '#0D0E10', // brand.charcoal (redesign)
     },
   },
   plugins: [
@@ -40,7 +40,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         image: './assets/images/splash-icon.png',
         resizeMode: 'contain',
-        backgroundColor: '#0F2A5C', // colors.navy
+        backgroundColor: '#0D0E10', // brand.charcoal (redesign)
         imageWidth: 200,
       },
     ],

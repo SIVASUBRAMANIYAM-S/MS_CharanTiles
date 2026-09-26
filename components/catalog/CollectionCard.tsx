@@ -1,8 +1,7 @@
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography } from '@/lib/theme';
 
 type CollectionCardProps = {
   name: string;
@@ -20,31 +19,50 @@ export function CollectionCard({
   onPress,
   width,
 }: CollectionCardProps) {
+  const styles = useStyles();
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.card, width !== undefined && { width }]}
       accessibilityRole="button"
+      accessibilityLabel={`${name} collection`}
+      style={({ pressed }) => [
+        styles.card,
+        width !== undefined && { width },
+        pressed && styles.pressed,
+      ]}
     >
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.image} contentFit="cover" />
-      ) : (
-        <View style={[styles.image, styles.imageFallback]} />
-      )}
+      <View style={styles.imageWrap}>
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.image}
+            contentFit="cover"
+            transition={200}
+            accessibilityIgnoresInvertColors
+          />
+        ) : null}
+      </View>
       <Text style={styles.name}>{name}</Text>
-      {description && (
+      {description ? (
         <Text style={styles.description} numberOfLines={2}>
           {description}
         </Text>
-      )}
+      ) : null}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  card: { gap: 6 },
-  image: { width: '100%', aspectRatio: 12 / 7, borderRadius: 16, backgroundColor: colors.surface },
-  imageFallback: { backgroundColor: colors.surface },
-  name: { ...typography.h3, color: colors.ink },
-  description: { ...typography.caption, color: colors.muted },
-});
+const useStyles = makeStyles((c) => ({
+  card: { gap: 4 },
+  pressed: { opacity: 0.85 },
+  imageWrap: {
+    aspectRatio: 3 / 2,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: c.surfaceAlt,
+    marginBottom: 8,
+  },
+  image: { width: '100%', height: '100%' },
+  name: { ...typography.h3, color: c.text },
+  description: { ...typography.body, fontSize: 14, lineHeight: 20, color: c.textMuted },
+}));

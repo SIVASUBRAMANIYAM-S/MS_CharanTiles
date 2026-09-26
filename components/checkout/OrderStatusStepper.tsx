@@ -1,8 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Check, XCircle } from '@/components/ui/icons';
+import { Text, View } from 'react-native';
 
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 const STEPS = [
   { key: 'placed', label: 'Placed' },
@@ -16,10 +15,13 @@ type OrderStatusStepperProps = {
 };
 
 export function OrderStatusStepper({ status }: OrderStatusStepperProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
   if (status === 'cancelled') {
     return (
       <View style={styles.cancelledRow}>
-        <Ionicons name="close-circle" size={20} color={colors.error} />
+        <XCircle size={20} color={colors.error} weight="fill" />
         <Text style={styles.cancelledText}>This order was cancelled</Text>
       </View>
     );
@@ -28,19 +30,27 @@ export function OrderStatusStepper({ status }: OrderStatusStepperProps) {
   const currentIndex = STEPS.findIndex((step) => step.key === status);
 
   return (
-    <View style={styles.row}>
+    <View
+      style={styles.row}
+      accessibilityLabel={`Order status: ${STEPS[currentIndex]?.label ?? status}`}
+    >
       {STEPS.map((step, index) => {
         const done = index <= currentIndex;
+        const isCurrent = index === currentIndex;
         const isLast = index === STEPS.length - 1;
         return (
           <View key={step.key} style={styles.stepWrap}>
             <View style={styles.dotRow}>
               <View style={[styles.dot, done && styles.dotDone]}>
-                {done && <Ionicons name="checkmark" size={12} color={colors.white} />}
+                {done && <Check size={12} color={colors.onAccent} weight="bold" />}
               </View>
               {!isLast && <View style={[styles.line, index < currentIndex && styles.lineDone]} />}
             </View>
-            <Text style={[styles.label, done && styles.labelDone]}>{step.label}</Text>
+            <Text
+              style={[styles.label, done && styles.labelDone, isCurrent && styles.labelCurrent]}
+            >
+              {step.label}
+            </Text>
           </View>
         );
       })}
@@ -48,32 +58,34 @@ export function OrderStatusStepper({ status }: OrderStatusStepperProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   row: { flexDirection: 'row' },
   stepWrap: { flex: 1, alignItems: 'flex-start' },
   dotRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
   dot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 24,
+    height: 24,
+    borderRadius: radius.pill,
     borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dotDone: { backgroundColor: colors.success, borderColor: colors.success },
-  line: { flex: 1, height: 2, backgroundColor: colors.border },
-  lineDone: { backgroundColor: colors.success },
-  label: { ...typography.caption, color: colors.muted, marginTop: 6 },
-  labelDone: { color: colors.ink },
+  dotDone: { backgroundColor: c.accent, borderColor: c.accent },
+  line: { flex: 1, height: 2, backgroundColor: c.border },
+  lineDone: { backgroundColor: c.accent },
+  label: { ...typography.caption, color: c.textMuted, marginTop: 8 },
+  labelDone: { color: c.text },
+  // Current step is marked by label color, not a bigger dot, so labels stay aligned.
+  labelCurrent: { color: c.accentInk, fontFamily: typography.label.fontFamily },
   cancelledRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
+    backgroundColor: c.errorSoft,
+    borderRadius: radius.md,
     padding: 12,
   },
-  cancelledText: { ...typography.bodyMedium, color: colors.error },
-});
+  cancelledText: { ...typography.bodyMedium, color: c.error },
+}));

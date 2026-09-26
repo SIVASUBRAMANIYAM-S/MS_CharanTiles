@@ -1,13 +1,17 @@
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import {
+  BottomSheetBackdrop,
+  type BottomSheetBackdropProps,
+  BottomSheetModal,
+  BottomSheetScrollView,
+} from '@gorhom/bottom-sheet';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Input';
 import type { ProductFilters } from '@/lib/queries/products';
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography } from '@/lib/theme';
 
 export type FilterSheetHandle = {
   present: () => void;
@@ -30,6 +34,7 @@ export const FilterSheet = forwardRef<FilterSheetHandle, FilterSheetProps>(funct
   { finishOptions, sizeOptions, colorOptions, value, onApply },
   ref,
 ) {
+  const styles = useStyles();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [finish, setFinish] = useState<string[]>(value.finish ?? []);
   const [size, setSize] = useState<string[]>(value.size ?? []);
@@ -37,7 +42,13 @@ export const FilterSheet = forwardRef<FilterSheetHandle, FilterSheetProps>(funct
   const [minPrice, setMinPrice] = useState(value.minPrice?.toString() ?? '');
   const [maxPrice, setMaxPrice] = useState(value.maxPrice?.toString() ?? '');
 
-  const snapPoints = useMemo(() => ['70%'], []);
+  const snapPoints = useMemo(() => ['78%'], []);
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.6} />
+    ),
+    [],
+  );
 
   useImperativeHandle(ref, () => ({
     present: () => {
@@ -79,11 +90,15 @@ export const FilterSheet = forwardRef<FilterSheetHandle, FilterSheetProps>(funct
     <BottomSheetModal
       ref={sheetRef}
       snapPoints={snapPoints}
+      backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
       <BottomSheetScrollView contentContainerStyle={styles.content}>
-        <Text style={typography.h3}>Filters</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Filters</Text>
+          <Button label="Reset" variant="ghost" size="sm" onPress={handleReset} />
+        </View>
 
         {finishOptions.length > 0 && (
           <FilterGroup label="Finish">
@@ -124,11 +139,12 @@ export const FilterSheet = forwardRef<FilterSheetHandle, FilterSheetProps>(funct
           </FilterGroup>
         )}
 
-        <FilterGroup label="Price range">
+        <View style={styles.group}>
+          <Text style={styles.groupLabel}>Price range</Text>
           <View style={styles.priceRow}>
             <View style={styles.priceInput}>
               <Input
-                label="Min"
+                label="Min (₹)"
                 keyboardType="numeric"
                 value={minPrice}
                 onChangeText={setMinPrice}
@@ -136,25 +152,23 @@ export const FilterSheet = forwardRef<FilterSheetHandle, FilterSheetProps>(funct
             </View>
             <View style={styles.priceInput}>
               <Input
-                label="Max"
+                label="Max (₹)"
                 keyboardType="numeric"
                 value={maxPrice}
                 onChangeText={setMaxPrice}
               />
             </View>
           </View>
-        </FilterGroup>
-
-        <View style={styles.actionRow}>
-          <Button label="Reset" variant="outline" onPress={handleReset} />
-          <Button label="Apply" onPress={handleApply} fullWidth />
         </View>
+
+        <Button label="Show results" onPress={handleApply} fullWidth size="lg" />
       </BottomSheetScrollView>
     </BottomSheetModal>
   );
 });
 
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.group}>
       <Text style={styles.groupLabel}>{label}</Text>
@@ -163,14 +177,15 @@ function FilterGroup({ label, children }: { label: string; children: React.React
   );
 }
 
-const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: colors.white },
-  handleIndicator: { backgroundColor: colors.border },
-  content: { padding: 20, gap: 20 },
-  group: { gap: 10 },
-  groupLabel: { ...typography.bodyMedium, color: colors.ink },
+const useStyles = makeStyles((c) => ({
+  sheetBackground: { backgroundColor: c.surface, borderRadius: radius.xl },
+  handleIndicator: { backgroundColor: c.borderStrong, width: 44 },
+  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40, gap: 24 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: { ...typography.h2, color: c.text },
+  group: { gap: 12 },
+  groupLabel: { ...typography.label, color: c.textMuted },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   priceRow: { flexDirection: 'row', gap: 12 },
   priceInput: { flex: 1 },
-  actionRow: { flexDirection: 'row', gap: 12, alignItems: 'center', marginTop: 8 },
-});
+}));

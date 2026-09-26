@@ -1,15 +1,16 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { MapPin, Receipt, Truck } from '@/components/ui/icons';
+import { Fragment, useEffect, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 
 import { OrderStatusStepper } from '@/components/checkout/OrderStatusStepper';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { formatRupees } from '@/components/ui/Price';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { getOrderById, type OrderWithItems, type ShippingAddress } from '@/lib/queries/orders';
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 function readShippingAddress(order: OrderWithItems): ShippingAddress | null {
   const raw = order.shipping_address;
@@ -27,8 +28,16 @@ function readShippingAddress(order: OrderWithItems): ShippingAddress | null {
   };
 }
 
+const dateFormat = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
 export default function OrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [order, setOrder] = useState<OrderWithItems | null | undefined>(undefined);
 
   useEffect(() => {
@@ -43,8 +52,13 @@ export default function OrderScreen() {
 
   if (order === null) {
     return (
-      <View style={styles.centered}>
-        <Text style={typography.body}>Order not found.</Text>
+      <View style={styles.container}>
+        <EmptyState
+          icon={<Receipt size={30} color={colors.accentInk} />}
+          title="Order not found"
+          actionLabel="View all orders"
+          onAction={() => router.replace('/order')}
+        />
       </View>
     );
   }
@@ -53,47 +67,49 @@ export default function OrderScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <Skeleton width="60%" height={28} />
-          <Skeleton width="100%" height={80} borderRadius={12} />
+          <Skeleton width="60%" height={30} />
+          <Skeleton width="100%" height={110} borderRadius={radius.lg} />
+          <Skeleton width="100%" height={160} borderRadius={radius.lg} />
         </View>
       </View>
     );
   }
 
   const address = readShippingAddress(order);
+  const orderNumber = order.id.slice(0, 8).toUpperCase();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: `Order #${order.id.slice(0, 8).toUpperCase()}` }} />
+      <Stack.Screen options={{ title: `Order #${orderNumber}` }} />
 
       <View style={styles.header}>
-        <Text style={typography.h1}>Order #{order.id.slice(0, 8).toUpperCase()}</Text>
-        <Text style={styles.meta}>
-          Placed {new Date(order.created_at).toLocaleDateString()} · Payment {order.payment_status}
-        </Text>
+        <Text style={styles.title}>Order #{orderNumber}</Text>
+        <Text style={styles.meta}>Placed on {dateFormat.format(new Date(order.created_at))}</Text>
       </View>
 
-      <View style={styles.section}>
-        <OrderStatusStepper status={order.status} />
-      </View>
-
-      <Card style={styles.comingSoonCard}>
-        <View style={styles.comingSoonRow}>
-          <Ionicons name="location-outline" size={20} color={colors.muted} />
-          <View style={styles.comingSoonText}>
-            <Text style={styles.comingSoonTitle}>Live courier tracking — Coming soon</Text>
-            <Text style={styles.comingSoonBody}>
-              This POC doesn&apos;t have a real courier/logistics integration yet, so tracking only
-              shows the order status above, not a live map or carrier updates.
-            </Text>
-          </View>
+      <Card>
+        <Text style={styles.cardTitle}>Status</Text>
+        <View style={styles.stepper}>
+          <OrderStatusStepper status={order.status} />
         </View>
       </Card>
 
-      <View style={styles.section}>
-        <Text style={typography.h3}>Items</Text>
+      <View style={styles.comingSoon}>
+        <Truck size={22} color={colors.accentInk} />
+        <View style={styles.comingSoonText}>
+          <Text style={styles.comingSoonTitle}>Live courier tracking is coming soon</Text>
+          <Text style={styles.comingSoonBody}>
+            For now, the status above is the latest update on your order.
+          </Text>
+        </View>
+      </View>
+
+      <Card>
+        <Text style={styles.cardTitle}>
+          {order.order_items.length} {order.order_items.length === 1 ? 'item' : 'items'}
+        </Text>
         <View style={styles.itemsList}>
-          {order.order_items.map((item) => {
+          {order.order_items.map((item, index) => {
             const image = [...(item.products?.product_images ?? [])].sort(
               (a, b) => a.sort_order - b.sort_order,
             )[0];
@@ -101,81 +117,118 @@ export default function OrderScreen() {
               .filter(Boolean)
               .join(' · ');
             return (
-              <View key={item.id} style={styles.itemRow}>
-                {image ? (
-                  <Image source={{ uri: image.url }} style={styles.itemImage} contentFit="cover" />
-                ) : (
-                  <View style={[styles.itemImage, styles.itemImageFallback]} />
-                )}
-                <View style={styles.itemDetails}>
-                  <Text style={styles.itemName} numberOfLines={2}>
-                    {item.products?.name ?? 'Product'}
+              <Fragment key={item.id}>
+                {index > 0 && <View style={styles.divider} />}
+                <View style={styles.itemRow}>
+                  <View style={styles.itemImage}>
+                    {image ? (
+                      <Image source={{ uri: image.url }} style={styles.fill} contentFit="cover" />
+                    ) : null}
+                  </View>
+                  <View style={styles.itemDetails}>
+                    <Text style={styles.itemName} numberOfLines={2}>
+                      {item.products?.name ?? 'Product'}
+                    </Text>
+                    {specs.length > 0 && <Text style={styles.itemSpecs}>{specs}</Text>}
+                    <Text style={styles.itemQty}>
+                      {item.quantity} × {formatRupees(item.price_at_purchase)}
+                    </Text>
+                  </View>
+                  <Text style={styles.itemPrice}>
+                    {formatRupees(item.price_at_purchase * item.quantity)}
                   </Text>
-                  {specs.length > 0 && <Text style={styles.itemSpecs}>{specs}</Text>}
-                  <Text style={styles.itemQty}>Qty {item.quantity}</Text>
                 </View>
-                <Text style={styles.itemPrice}>
-                  ₹{(item.price_at_purchase * item.quantity).toFixed(0)}
-                </Text>
-              </View>
+              </Fragment>
             );
           })}
         </View>
-      </View>
+      </Card>
 
       {address && (
-        <View style={styles.section}>
-          <Text style={typography.h3}>Delivery address</Text>
-          <Card>
-            <Text style={styles.addressName}>{address.fullName}</Text>
-            <Text style={styles.addressLine}>
-              {address.line1}
-              {address.line2 ? `, ${address.line2}` : ''}
-            </Text>
-            <Text style={styles.addressLine}>
-              {address.city}, {address.state} {address.pincode}
-            </Text>
-            <Text style={styles.addressLine}>Phone: {address.phone}</Text>
-          </Card>
-        </View>
+        <Card>
+          <View style={styles.cardHeader}>
+            <MapPin size={18} color={colors.accentInk} weight="fill" />
+            <Text style={styles.cardTitle}>Delivery address</Text>
+          </View>
+          <Text style={styles.addressName}>{address.fullName}</Text>
+          <Text style={styles.addressLine}>
+            {address.line1}
+            {address.line2 ? `, ${address.line2}` : ''}
+          </Text>
+          <Text style={styles.addressLine}>
+            {address.city}, {address.state} {address.pincode}
+          </Text>
+          <Text style={styles.addressLine}>+91 {address.phone}</Text>
+        </Card>
       )}
 
-      <View style={styles.totalRow}>
-        <Text style={typography.h3}>Total</Text>
-        <Text style={typography.h3}>₹{order.total_amount.toFixed(0)}</Text>
-      </View>
+      <Card>
+        <Text style={styles.cardTitle}>Payment</Text>
+        <View style={styles.summary}>
+          <View style={styles.row}>
+            <Text style={styles.muted}>Status</Text>
+            <Text style={[styles.value, order.payment_status === 'paid' && styles.paid]}>
+              {order.payment_status === 'paid' ? 'Paid' : order.payment_status}
+            </Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.muted}>Shipping</Text>
+            <Text style={[styles.value, styles.paid]}>Free</Text>
+          </View>
+          <View style={[styles.row, styles.totalRow]}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>{formatRupees(order.total_amount)}</Text>
+          </View>
+        </View>
+      </Card>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.stone },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16, gap: 24, paddingBottom: 32 },
-  header: { gap: 4 },
-  meta: { ...typography.caption, color: colors.muted },
-  section: { gap: 12 },
-  comingSoonCard: { backgroundColor: colors.surface },
-  comingSoonRow: { flexDirection: 'row', gap: 12 },
-  comingSoonText: { flex: 1, gap: 4 },
-  comingSoonTitle: { ...typography.bodyMedium, color: colors.ink },
-  comingSoonBody: { ...typography.caption, color: colors.muted },
-  itemsList: { gap: 12 },
-  itemRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  itemImage: { width: 56, height: 56, borderRadius: 8, backgroundColor: colors.surface },
-  itemImageFallback: { backgroundColor: colors.surface },
-  itemDetails: { flex: 1, gap: 2 },
-  itemName: { ...typography.bodyMedium, color: colors.ink },
-  itemSpecs: { ...typography.caption, color: colors.muted },
-  itemQty: { ...typography.caption, color: colors.muted },
-  itemPrice: { ...typography.bodyMedium, color: colors.ink },
-  addressName: { ...typography.bodyMedium, color: colors.ink },
-  addressLine: { ...typography.body, color: colors.muted },
-  totalRow: {
+const useStyles = makeStyles((c) => ({
+  container: { flex: 1, backgroundColor: c.bg },
+  content: { padding: 16, gap: 16, paddingBottom: 40 },
+  header: { gap: 4, marginBottom: 4 },
+  title: { ...typography.h1, color: c.text, fontVariant: ['tabular-nums'] },
+  meta: { ...typography.body, color: c.textMuted },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  cardTitle: { ...typography.h3, color: c.text },
+  stepper: { marginTop: 16 },
+  comingSoon: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    gap: 12,
+    alignItems: 'flex-start',
+    padding: 16,
+    borderRadius: radius.lg,
+    backgroundColor: c.accentSoft,
   },
-});
+  comingSoonText: { flex: 1, gap: 2 },
+  comingSoonTitle: { ...typography.bodyMedium, color: c.text },
+  comingSoonBody: { ...typography.caption, color: c.textMuted },
+  itemsList: { gap: 14, marginTop: 14 },
+  divider: { height: 1, backgroundColor: c.border },
+  itemRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  itemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: c.surfaceAlt,
+  },
+  fill: { width: '100%', height: '100%' },
+  itemDetails: { flex: 1, gap: 2 },
+  itemName: { ...typography.bodyMedium, color: c.text },
+  itemSpecs: { ...typography.caption, color: c.textMuted, textTransform: 'capitalize' },
+  itemQty: { ...typography.caption, color: c.textMuted, fontVariant: ['tabular-nums'] },
+  itemPrice: { ...typography.price, fontSize: 15, color: c.text },
+  addressName: { ...typography.bodyMedium, color: c.text },
+  addressLine: { ...typography.body, color: c.textMuted },
+  summary: { gap: 8, marginTop: 12 },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  muted: { ...typography.body, color: c.textMuted },
+  value: { ...typography.bodyMedium, color: c.text, textTransform: 'capitalize' },
+  paid: { color: c.success },
+  totalRow: { paddingTop: 10, borderTopWidth: 1, borderTopColor: c.border },
+  totalLabel: { ...typography.h3, color: c.text },
+  totalValue: { ...typography.h2, color: c.text, fontVariant: ['tabular-nums'] },
+}));

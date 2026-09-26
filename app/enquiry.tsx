@@ -1,10 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
+import { CheckCircle, WarningCircle } from '@/components/ui/icons';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
@@ -19,8 +19,7 @@ import {
 } from '@/lib/queries/inquiries';
 import { getProductById, type ProductWithDetails } from '@/lib/queries/products';
 import { useAuthStore } from '@/lib/store/auth';
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 import {
   enquiryMessageSchema,
   fullNameSchema,
@@ -43,6 +42,8 @@ function firstError(result: { success: boolean; error?: { issues: { message: str
 
 export default function EnquiryScreen() {
   const { productId } = useLocalSearchParams<{ productId?: string }>();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const userId = useAuthStore((state) => state.user?.id);
   const profile = useAuthStore((state) => state.profile);
 
@@ -102,9 +103,11 @@ export default function EnquiryScreen() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'timing', duration: 350 }}
         >
-          <Ionicons name="checkmark-circle" size={72} color={colors.success} />
+          <View style={styles.successIcon}>
+            <CheckCircle size={44} color={colors.success} weight="fill" />
+          </View>
         </MotiView>
-        <Text style={typography.h2}>Enquiry sent</Text>
+        <Text style={styles.successTitle}>Enquiry sent</Text>
         <Text style={styles.successBody}>
           Thanks, {sentTo.name}. Our team will contact you on {sentTo.phone}.
         </Text>
@@ -134,7 +137,7 @@ export default function EnquiryScreen() {
       <Stack.Screen options={{ title: 'Enquiry' }} />
 
       <View style={styles.header}>
-        <Text style={typography.h1}>Talk to our tile experts</Text>
+        <Text style={styles.title}>Talk to our tile experts</Text>
         <Text style={styles.subtitle}>
           Share a few details and our team will get back to you by phone.
         </Text>
@@ -272,47 +275,71 @@ export default function EnquiryScreen() {
         )}
       />
 
-      {submitError && <Text style={styles.errorText}>{submitError}</Text>}
+      {submitError && (
+        <View style={styles.error}>
+          <WarningCircle size={20} color={colors.error} weight="fill" />
+          <Text style={styles.errorText}>{submitError}</Text>
+        </View>
+      )}
 
-      <Button label="Send enquiry" onPress={onSubmit} loading={isSubmitting} fullWidth />
+      <Button label="Send enquiry" onPress={onSubmit} loading={isSubmitting} fullWidth size="lg" />
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.stone },
-  content: { padding: 16, gap: 20, paddingBottom: 40 },
+const useStyles = makeStyles((c) => ({
+  container: { flex: 1, backgroundColor: c.bg },
+  content: { padding: 16, gap: 24, paddingBottom: 48 },
   header: { gap: 6 },
-  subtitle: { ...typography.body, color: colors.muted },
+  title: { ...typography.h1, color: c.text },
+  subtitle: { ...typography.body, color: c.textMuted },
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
+    borderColor: c.border,
+    backgroundColor: c.surface,
   },
-  productImage: { width: 56, height: 56, borderRadius: 8, backgroundColor: colors.surface },
+  productImage: { width: 60, height: 60, borderRadius: radius.md, backgroundColor: c.surfaceAlt },
   productText: { flex: 1, gap: 2 },
-  productCaption: { ...typography.caption, color: colors.muted },
-  productName: { ...typography.bodyMedium, color: colors.ink },
-  productPrice: { ...typography.caption, color: colors.primary },
+  productCaption: { ...typography.caption, color: c.textMuted },
+  productName: { ...typography.bodyMedium, color: c.text },
+  productPrice: { ...typography.label, color: c.accentInk, fontVariant: ['tabular-nums'] },
   section: { gap: 16 },
   chipGroup: { gap: 10 },
-  groupLabel: { ...typography.bodyMedium, color: colors.ink },
+  groupLabel: { ...typography.label, color: c.textMuted },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  messageInput: { minHeight: 112 },
-  errorText: { ...typography.body, color: colors.error },
+  messageInput: { minHeight: 120 },
+  error: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: radius.md,
+    backgroundColor: c.errorSoft,
+  },
+  errorText: { ...typography.body, color: c.text, flex: 1 },
   successContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
     padding: 24,
-    backgroundColor: colors.stone,
+    backgroundColor: c.bg,
   },
-  successBody: { ...typography.body, color: colors.muted, textAlign: 'center' },
-  successActions: { width: '100%', gap: 12, marginTop: 16 },
-});
+  successIcon: {
+    width: 84,
+    height: 84,
+    borderRadius: radius.pill,
+    backgroundColor: c.successSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  successTitle: { ...typography.h1, color: c.text },
+  successBody: { ...typography.body, color: c.textMuted, textAlign: 'center', maxWidth: 300 },
+  successActions: { width: '100%', gap: 12, marginTop: 20 },
+}));

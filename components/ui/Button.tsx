@@ -1,18 +1,16 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
 import { type ReactNode, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  StyleSheet,
   Text,
   type TextStyle,
   View,
   type ViewStyle,
 } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 
-import { colors } from '@/lib/theme/colors';
-import { fontFamily } from '@/lib/theme/typography';
+import { fontFamily, makeStyles, radius, useTheme } from '@/lib/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -24,15 +22,9 @@ type ButtonProps = {
   size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
-  icon?: ReactNode;
+  /** Rendered left of the label: a node, or a function given the label color for this variant. */
+  icon?: ReactNode | ((color: string) => ReactNode);
   fullWidth?: boolean;
-};
-
-const labelColor: Record<ButtonVariant, string> = {
-  primary: colors.white,
-  secondary: colors.ink,
-  outline: colors.primary,
-  ghost: colors.primary,
 };
 
 export function Button({
@@ -46,7 +38,18 @@ export function Button({
   fullWidth = false,
 }: ButtonProps) {
   const [pressed, setPressed] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const inactive = disabled || loading;
+
+  const labelColor: Record<ButtonVariant, string> = {
+    primary: colors.onAccent,
+    secondary: colors.text,
+    outline: colors.text,
+    ghost: colors.accentInk,
+  };
+  const color = labelColor[variant];
 
   return (
     <Pressable
@@ -60,28 +63,26 @@ export function Button({
       style={fullWidth ? styles.fullWidth : styles.inline}
     >
       <MotiView
-        animate={{ scale: pressed && !inactive ? 0.96 : 1 }}
-        transition={{ type: 'timing', duration: 120 }}
-        style={[styles.base, sizeStyles[size], variantStyles[variant], disabled && styles.disabled]}
+        animate={{ scale: pressed && !inactive && !reduceMotion ? 0.97 : 1 }}
+        transition={{ type: 'timing', duration: 110 }}
+        style={[
+          styles.base,
+          sizeStyles[size],
+          styles[variant],
+          disabled && styles.disabled,
+          pressed && !inactive && styles.pressed,
+        ]}
       >
-        {variant === 'primary' && (
-          <LinearGradient
-            colors={[colors.navy, colors.primary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-        )}
         {/* Label stays mounted (just hidden) while loading so the button keeps its size. */}
         <View style={[styles.content, loading && styles.hidden]}>
-          {icon}
-          <Text style={[styles.label, labelSizeStyles[size], { color: labelColor[variant] }]}>
+          {typeof icon === 'function' ? icon(color) : icon}
+          <Text style={[styles.label, labelSizeStyles[size], { color }]} numberOfLines={1}>
             {label}
           </Text>
         </View>
         {loading && (
           <View style={styles.spinner}>
-            <ActivityIndicator color={labelColor[variant]} />
+            <ActivityIndicator color={color} />
           </View>
         )}
       </MotiView>
@@ -89,15 +90,20 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   inline: { alignSelf: 'flex-start' },
   fullWidth: { alignSelf: 'stretch' },
   base: {
-    borderRadius: 12,
+    borderRadius: radius.md,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  primary: { backgroundColor: c.accent },
+  secondary: { backgroundColor: c.surfaceAlt },
+  outline: { borderWidth: 1.5, borderColor: c.borderStrong },
+  ghost: {},
+  pressed: { opacity: 0.9 },
   content: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hidden: { opacity: 0 },
   spinner: {
@@ -109,27 +115,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { fontFamily: fontFamily.bodySemiBold },
-  disabled: { opacity: 0.5 },
-});
+  label: { fontFamily: fontFamily.semiBold },
+  disabled: { opacity: 0.45 },
+}));
 
 // Lookup maps are plain typed objects: react-native/no-unused-styles can't follow
 // computed access like sizeStyles[size] into a StyleSheet.create block.
 const sizeStyles: Record<ButtonSize, ViewStyle> = {
-  sm: { height: 36, paddingHorizontal: 14 },
-  md: { height: 48, paddingHorizontal: 20 },
+  sm: { height: 38, paddingHorizontal: 14 },
+  md: { height: 50, paddingHorizontal: 20 },
   lg: { height: 56, paddingHorizontal: 28 },
 };
 
 const labelSizeStyles: Record<ButtonSize, TextStyle> = {
   sm: { fontSize: 14 },
   md: { fontSize: 16 },
-  lg: { fontSize: 18 },
-};
-
-const variantStyles: Record<ButtonVariant, ViewStyle> = {
-  primary: {},
-  secondary: { backgroundColor: colors.surface },
-  outline: { borderWidth: 1.5, borderColor: colors.primary },
-  ghost: {},
+  lg: { fontSize: 17 },
 };

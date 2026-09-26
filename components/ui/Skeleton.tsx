@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors } from '@/lib/theme/colors';
+import { makeStyles } from '@/lib/theme';
 
 type SkeletonProps = {
   width: number | `${number}%`;
@@ -17,12 +17,15 @@ type SkeletonProps = {
 };
 
 export function Skeleton({ width, height, borderRadius = 8 }: SkeletonProps) {
-  const opacity = useSharedValue(0.45);
+  const styles = useStyles();
+  const reduceMotion = useReducedMotion();
+  const opacity = useSharedValue(0.5);
 
   useEffect(() => {
-    opacity.value = withRepeat(withTiming(1, { duration: 800 }), -1, true);
+    if (reduceMotion) return;
+    opacity.value = withRepeat(withTiming(1, { duration: 850 }), -1, true);
     return () => cancelAnimation(opacity);
-  }, [opacity]);
+  }, [opacity, reduceMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
@@ -35,6 +38,6 @@ export function Skeleton({ width, height, borderRadius = 8 }: SkeletonProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  base: { backgroundColor: colors.surface },
-});
+const useStyles = makeStyles((c) => ({
+  base: { backgroundColor: c.surfaceAlt },
+}));
