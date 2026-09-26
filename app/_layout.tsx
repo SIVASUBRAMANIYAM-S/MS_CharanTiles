@@ -1,3 +1,4 @@
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import {
   PlusJakartaSans_600SemiBold,
@@ -6,7 +7,13 @@ import {
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+import { BrandSplash } from '@/components/BrandSplash';
+import { useAuthStore } from '@/lib/store/auth';
+import { useWishlistStore } from '@/lib/store/wishlist';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -20,21 +27,49 @@ export default function RootLayout() {
   });
 
   // A font load failure shouldn't trap the user on the splash — fall back to system fonts.
-  const ready = fontsLoaded || fontError !== null;
+  const fontsReady = fontsLoaded || fontError !== null;
+
+  const authLoading = useAuthStore((state) => state.loading);
+  const authUser = useAuthStore((state) => state.user);
+  const authInit = useAuthStore((state) => state.init);
+  const hydrateWishlist = useWishlistStore((state) => state.hydrate);
+  const wishlistHydratedFor = useRef<string | null>(null);
 
   useEffect(() => {
-    if (ready) {
+    if (fontsReady) {
       SplashScreen.hideAsync();
+      authInit();
     }
-  }, [ready]);
+  }, [fontsReady, authInit]);
 
-  if (!ready) {
+  useEffect(() => {
+    if (authUser && wishlistHydratedFor.current !== authUser.id) {
+      wishlistHydratedFor.current = authUser.id;
+      hydrateWishlist(authUser.id);
+    }
+  }, [authUser, hydrateWishlist]);
+
+  if (!fontsReady) {
     return null;
   }
 
+  const appReady = fontsReady && !authLoading;
+
   return (
-    <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
+    <GestureHandlerRootView style={styles.root}>
+      <BottomSheetModalProvider>
+        {appReady ? (
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          </Stack>
+        ) : (
+          <BrandSplash />
+        )}
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
