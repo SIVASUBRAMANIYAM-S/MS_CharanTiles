@@ -8,6 +8,7 @@ type WishlistState = {
   hydrate: (userId: string) => Promise<void>;
   isWishlisted: (productId: string) => boolean;
   toggle: (userId: string, productId: string) => Promise<void>;
+  reset: () => void;
 };
 
 export const useWishlistStore = create<WishlistState>((set, get) => ({
@@ -47,4 +48,9 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
       });
     }
   },
+
+  // Called on sign-out: the old session's wishlist belongs to a user_id with no
+  // active session anymore. app/_layout.tsx re-hydrates it for the new
+  // anonymous session once init() resolves a new user id.
+  reset: () => set({ productIds: [], hydrated: false }),
 }));
