@@ -1,0 +1,47 @@
+import type { ConfigContext, ExpoConfig } from 'expo/config';
+
+export default ({ config }: ConfigContext): ExpoConfig => ({
+  ...config,
+  name: 'MS Charan Tiles',
+  slug: 'mscharantiles',
+  version: '1.0.0',
+  orientation: 'portrait',
+  icon: './assets/images/icon.png',
+  scheme: 'mscharantiles',
+  userInterfaceStyle: 'automatic',
+  ios: {
+    bundleIdentifier: 'com.mscharan.tiles',
+    icon: './assets/expo.icon',
+  },
+  android: {
+    package: 'com.mscharan.tiles',
+    adaptiveIcon: {
+      backgroundColor: '#E6F4FE',
+      foregroundImage: './assets/images/android-icon-foreground.png',
+      backgroundImage: './assets/images/android-icon-background.png',
+      monochromeImage: './assets/images/android-icon-monochrome.png',
+    },
+    predictiveBackGestureEnabled: false,
+  },
+  web: {
+    output: 'static',
+    favicon: './assets/images/favicon.png',
+  },
+  plugins: [
+    'expo-router',
+    [
+      'expo-splash-screen',
+      {
+        backgroundColor: '#208AEF',
+        image: './assets/images/splash-icon.png',
+        imageWidth: 76,
+      },
+    ],
+    'expo-secure-store',
+    'expo-image',
+  ],
+  experiments: {
+    typedRoutes: true,
+    reactCompiler: true,
+  },
+});
