@@ -1,10 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Minus, Plus, Trash } from '@/components/ui/icons';
+import { Pressable, Text, View } from 'react-native';
 
+import { formatRupees } from '@/components/ui/Price';
 import type { CartLineDetail } from '@/lib/queries/cart';
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 type CartLineItemProps = {
   line: CartLineDetail;
@@ -22,97 +22,110 @@ export function CartLineItem({
   onRemove,
   readOnly,
 }: CartLineItemProps) {
-  const lineTotal = line.unitPrice * line.quantity;
+  const { colors } = useTheme();
+  const styles = useStyles();
   const specs = [line.size, line.finish].filter(Boolean).join(' · ');
 
   return (
     <View style={styles.row}>
-      {line.imageUrl ? (
-        <Image source={{ uri: line.imageUrl }} style={styles.image} contentFit="cover" />
-      ) : (
-        <View style={[styles.image, styles.imageFallback]} />
-      )}
+      <View style={styles.imageWrap}>
+        {line.imageUrl ? (
+          <Image source={{ uri: line.imageUrl }} style={styles.image} contentFit="cover" />
+        ) : null}
+      </View>
 
       <View style={styles.details}>
-        <Text style={styles.name} numberOfLines={2}>
-          {line.name}
-        </Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.name} numberOfLines={2}>
+            {line.name}
+          </Text>
+          {!readOnly && (
+            <Pressable
+              onPress={onRemove}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Remove item"
+              style={({ pressed }) => pressed && styles.pressed}
+            >
+              <Trash size={18} color={colors.textMuted} />
+            </Pressable>
+          )}
+        </View>
         {specs.length > 0 && <Text style={styles.specs}>{specs}</Text>}
-        <Text style={styles.price}>
-          ₹{line.unitPrice.toFixed(0)} {!readOnly && <Text style={styles.muted}>each</Text>}
-        </Text>
-
         {line.stockStatus === 'out_of_stock' && (
-          <Text style={styles.outOfStock}>Out of stock — remove to continue</Text>
+          <Text style={styles.outOfStock}>Out of stock. Remove it to continue.</Text>
         )}
 
-        {readOnly ? (
-          <Text style={styles.qtyText}>Qty {line.quantity}</Text>
-        ) : (
-          <View style={styles.controls}>
+        <View style={styles.bottomRow}>
+          {readOnly ? (
+            <Text style={styles.qtyText}>
+              {line.quantity} × {formatRupees(line.unitPrice)}
+            </Text>
+          ) : (
             <View style={styles.stepper}>
               <Pressable
                 onPress={onDecrement}
-                style={styles.stepperButton}
+                style={({ pressed }) => [styles.stepperButton, pressed && styles.pressed]}
                 accessibilityRole="button"
                 accessibilityLabel="Decrease quantity"
               >
-                <Ionicons name="remove" size={16} color={colors.ink} />
+                <Minus size={16} color={colors.text} weight="bold" />
               </Pressable>
               <Text style={styles.stepperValue}>{line.quantity}</Text>
               <Pressable
                 onPress={onIncrement}
-                style={styles.stepperButton}
+                style={({ pressed }) => [styles.stepperButton, pressed && styles.pressed]}
                 accessibilityRole="button"
                 accessibilityLabel="Increase quantity"
               >
-                <Ionicons name="add" size={16} color={colors.ink} />
+                <Plus size={16} color={colors.text} weight="bold" />
               </Pressable>
             </View>
-            <Pressable
-              onPress={onRemove}
-              accessibilityRole="button"
-              accessibilityLabel="Remove item"
-            >
-              <Ionicons name="trash-outline" size={18} color={colors.muted} />
-            </Pressable>
-          </View>
-        )}
+          )}
+          <Text style={styles.lineTotal}>{formatRupees(line.unitPrice * line.quantity)}</Text>
+        </View>
       </View>
-
-      <Text style={styles.lineTotal}>₹{lineTotal.toFixed(0)}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 12 },
-  image: { width: 84, height: 84, borderRadius: 10, backgroundColor: colors.surface },
-  imageFallback: { backgroundColor: colors.surface },
+const useStyles = makeStyles((c) => ({
+  row: { flexDirection: 'row', gap: 14 },
+  imageWrap: {
+    width: 92,
+    height: 92,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: c.surfaceAlt,
+  },
+  image: { width: '100%', height: '100%' },
   details: { flex: 1, gap: 4 },
-  name: { ...typography.bodyMedium, color: colors.ink },
-  specs: { ...typography.caption, color: colors.muted },
-  price: { ...typography.bodyMedium, color: colors.primary },
-  muted: { ...typography.caption, color: colors.muted },
-  outOfStock: { ...typography.caption, color: colors.error },
-  qtyText: { ...typography.caption, color: colors.muted },
-  controls: {
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  name: { ...typography.bodyMedium, color: c.text, flex: 1 },
+  specs: { ...typography.caption, color: c.textMuted, textTransform: 'capitalize' },
+  outOfStock: { ...typography.caption, color: c.error },
+  bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 'auto',
+    paddingTop: 6,
   },
+  qtyText: { ...typography.caption, color: c.textMuted, fontVariant: ['tabular-nums'] },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: c.surfaceAlt,
+    borderRadius: radius.pill,
   },
-  stepperButton: { padding: 2 },
-  stepperValue: { ...typography.bodyMedium, color: colors.ink, minWidth: 18, textAlign: 'center' },
-  lineTotal: { ...typography.bodyMedium, color: colors.ink },
-});
+  stepperButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  stepperValue: {
+    ...typography.label,
+    color: c.text,
+    minWidth: 22,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
+  lineTotal: { ...typography.price, color: c.text },
+  pressed: { opacity: 0.6 },
+}));

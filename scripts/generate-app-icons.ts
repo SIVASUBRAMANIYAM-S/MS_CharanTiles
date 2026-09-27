@@ -9,7 +9,7 @@ import path from 'node:path';
 
 import sharp, { type Sharp } from 'sharp';
 
-import { colors } from '../lib/theme/colors';
+import { brand } from '../lib/theme/colors';
 
 const root = path.join(__dirname, '..');
 const sourcePath = path.join(root, 'assets/brand/mscharan-logo-source.png');
@@ -52,14 +52,14 @@ async function main(): Promise<void> {
   const logo = await loadWhiteLogo();
 
   // iOS / web icon: full lockup at ~70% width on solid primary blue.
-  await composite(logo, 1024, 0.7, colors.primary, 'icon.png');
+  await composite(logo, 1024, 0.7, brand.blue, 'icon.png');
 
   // Android adaptive foreground: transparent; background color lives in app.config.ts.
   // Launchers mask to a ~61% circle, so the logo is kept at 50% width to stay inside it.
   await composite(logo, 1024, 0.5, TRANSPARENT, 'adaptive-icon.png');
 
   // Favicon: same composite as the app icon, at browser-tab size.
-  await composite(logo, 48, 0.8, colors.primary, 'favicon.png');
+  await composite(logo, 48, 0.8, brand.blue, 'favicon.png');
 
   // Native splash: logo on transparent; the navy background is set in app.config.ts.
   await composite(logo, 400, 0.85, TRANSPARENT, 'splash-icon.png');

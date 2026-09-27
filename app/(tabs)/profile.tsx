@@ -1,20 +1,39 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import {
+  CaretRight,
+  ChatCircleText,
+  Heart,
+  type Icon,
+  Phone,
+  Receipt,
+  SignOut,
+  User,
+} from '@/components/ui/icons';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuthStore } from '@/lib/store/auth';
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 type FormValues = { full_name: string };
 
+type MenuItem = { label: string; icon: Icon; href: '/wishlist' | '/order' | '/enquiry' };
+
+const MENU: MenuItem[] = [
+  { label: 'Wishlist', icon: Heart, href: '/wishlist' },
+  { label: 'Order history', icon: Receipt, href: '/order' },
+  { label: 'Send an enquiry', icon: ChatCircleText, href: '/enquiry' },
+];
+
 export default function ProfileScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const profile = useAuthStore((state) => state.profile);
   const updateFullName = useAuthStore((state) => state.updateFullName);
   const signOut = useAuthStore((state) => state.signOut);
@@ -71,127 +90,216 @@ export default function ProfileScreen() {
   if (!profile) {
     return (
       <View style={styles.container}>
-        <View style={styles.content}>
-          <Skeleton width="50%" height={32} />
-          <Skeleton width="100%" height={80} borderRadius={16} />
+        <ScreenHeader title="Profile" />
+        <View style={styles.body}>
+          <Skeleton width="100%" height={88} borderRadius={radius.lg} />
+          <Skeleton width="100%" height={160} borderRadius={radius.lg} />
         </View>
       </View>
     );
   }
 
+  const displayName = profile.full_name?.trim() || (profile.phone ? 'Welcome back' : 'Guest');
+  const initial = profile.full_name?.trim().charAt(0).toUpperCase();
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={typography.h1}>Profile</Text>
+      <ScreenHeader title="Profile" />
 
-      {!profile.phone ? (
-        <Card>
-          <Text style={typography.h3}>Add your phone number</Text>
-          <Text style={styles.cardBody}>
-            Attach a phone number to personalize your account. Your browsing, wishlist and cart stay
-            exactly as they are.
-          </Text>
-          <Button label="Add phone number" onPress={() => router.push('/auth/login')} />
-        </Card>
-      ) : (
-        <View style={styles.section}>
-          <Controller
-            control={control}
-            name="full_name"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <Input
-                label="Full name"
-                placeholder="Your name"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-              />
+      <View style={styles.body}>
+        <View style={styles.identity}>
+          <View style={styles.avatar}>
+            {initial ? (
+              <Text style={styles.avatarText}>{initial}</Text>
+            ) : (
+              <User size={28} color={colors.accentInk} weight="bold" />
             )}
-          />
-          <View style={styles.saveRow}>
-            <Button label="Save" onPress={onSaveName} loading={savingName} />
-            {savedMessage && <Text style={styles.savedText}>Saved</Text>}
           </View>
-
-          <View style={styles.phoneRow}>
-            <View>
-              <Text style={styles.fieldLabel}>Phone number</Text>
-              <Text style={styles.phoneValue}>{profile.phone}</Text>
-            </View>
-            <Pressable onPress={() => router.push('/auth/login')} accessibilityRole="button">
-              <Text style={styles.changeLink}>Change number</Text>
-            </Pressable>
+          <View style={styles.identityText}>
+            <Text style={styles.name} numberOfLines={1}>
+              {displayName}
+            </Text>
+            <Text style={styles.identitySub}>
+              {profile.phone ? `+91 ${profile.phone}` : 'Browsing as a guest'}
+            </Text>
           </View>
-
-          <Card onPress={() => router.push('/wishlist')}>
-            <View style={styles.shortcutRow}>
-              <Ionicons name="heart" size={20} color={colors.primary} />
-              <Text style={styles.shortcutLabel}>Wishlist</Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-            </View>
-          </Card>
-
-          <Card onPress={() => router.push('/order')}>
-            <View style={styles.shortcutRow}>
-              <Ionicons name="receipt-outline" size={20} color={colors.primary} />
-              <Text style={styles.shortcutLabel}>Order History</Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-            </View>
-          </Card>
         </View>
-      )}
 
-      <View style={styles.signOutSection}>
+        {!profile.phone ? (
+          <Card variant="accent">
+            <View style={styles.phoneIcon}>
+              <Phone size={20} color={colors.onAccent} weight="fill" />
+            </View>
+            <Text style={styles.cardTitle}>Add your phone number</Text>
+            <Text style={styles.cardBody}>
+              Personalise your account. Your wishlist and cart stay exactly as they are.
+            </Text>
+            <Button label="Add phone number" onPress={() => router.push('/auth/login')} />
+          </Card>
+        ) : (
+          <Card>
+            <Text style={styles.cardTitle}>Your details</Text>
+            <View style={styles.form}>
+              <Controller
+                control={control}
+                name="full_name"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <Input
+                    label="Full name"
+                    placeholder="Your name"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    autoComplete="name"
+                  />
+                )}
+              />
+              <View style={styles.saveRow}>
+                <Button label="Save" size="sm" onPress={onSaveName} loading={savingName} />
+                {savedMessage && <Text style={styles.savedText}>Saved</Text>}
+              </View>
+              <View style={styles.phoneRow}>
+                <View>
+                  <Text style={styles.fieldLabel}>Phone number</Text>
+                  <Text style={styles.phoneValue}>+91 {profile.phone}</Text>
+                </View>
+                <Pressable
+                  onPress={() => router.push('/auth/login')}
+                  accessibilityRole="button"
+                  hitSlop={8}
+                >
+                  <Text style={styles.link}>Change number</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Card>
+        )}
+
+        <Card style={styles.menu}>
+          {MENU.map((item, index) => (
+            <Fragment key={item.href}>
+              {index > 0 && <View style={styles.menuDivider} />}
+              <Pressable
+                onPress={() => router.push(item.href)}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+                style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}
+              >
+                <View style={styles.menuIcon}>
+                  <item.icon size={20} color={colors.accentInk} />
+                </View>
+                <Text style={styles.menuLabel}>{item.label}</Text>
+                <CaretRight size={16} color={colors.textMuted} />
+              </Pressable>
+            </Fragment>
+          ))}
+        </Card>
+
         {!confirmingSignOut ? (
           <Button
-            label="Sign Out"
+            label="Sign out"
             variant="outline"
             onPress={() => setConfirmingSignOut(true)}
             fullWidth
+            icon={(color) => <SignOut size={18} color={color} />}
           />
         ) : (
-          <Card>
+          <View style={styles.confirm}>
+            <Text style={styles.confirmTitle}>Sign out?</Text>
             <Text style={styles.confirmText}>
-              Signing out clears your current cart and wishlist — they belong to this anonymous
-              session and can&apos;t be recovered afterwards. Sign out anyway?
+              Your current cart and wishlist belong to this session and can&apos;t be recovered
+              after signing out.
             </Text>
             <View style={styles.confirmRow}>
               <Button
                 label="Cancel"
-                variant="ghost"
+                variant="secondary"
                 onPress={() => setConfirmingSignOut(false)}
                 disabled={signingOut}
               />
-              <Button label="Sign Out" onPress={handleSignOut} loading={signingOut} />
+              <Button label="Sign out" onPress={handleSignOut} loading={signingOut} />
             </View>
-          </Card>
+          </View>
         )}
+
+        <Text style={styles.footnote}>
+          Appearance follows your phone&apos;s light or dark setting.
+        </Text>
       </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.stone },
-  content: { padding: 16, gap: 20, paddingBottom: 32 },
-  cardBody: { ...typography.body, color: colors.muted, marginVertical: 8 },
-  section: { gap: 16 },
+const useStyles = makeStyles((c) => ({
+  container: { flex: 1, backgroundColor: c.bg },
+  content: { paddingBottom: 40 },
+  body: { paddingHorizontal: 16, paddingTop: 12, gap: 20 },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.lg,
+    backgroundColor: c.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { ...typography.h1, color: c.accentInk },
+  identityText: { flex: 1, gap: 2 },
+  name: { ...typography.h2, color: c.text },
+  identitySub: { ...typography.body, color: c.textMuted },
+  phoneIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: c.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  cardTitle: { ...typography.h3, color: c.text },
+  cardBody: { ...typography.body, color: c.textMuted, marginTop: 4, marginBottom: 16 },
+  form: { gap: 16, marginTop: 14 },
   saveRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  savedText: { ...typography.bodyMedium, color: colors.primary },
+  savedText: { ...typography.label, color: c.success },
   phoneRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingTop: 16,
     borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderTopColor: c.border,
   },
-  fieldLabel: { ...typography.caption, color: colors.muted },
-  phoneValue: { ...typography.bodyMedium, color: colors.ink },
-  changeLink: { ...typography.bodyMedium, color: colors.primary },
-  shortcutRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  shortcutLabel: { ...typography.bodyMedium, color: colors.ink, flex: 1 },
-  signOutSection: { marginTop: 12 },
-  confirmText: { ...typography.body, color: colors.ink, marginBottom: 12 },
-  confirmRow: { flexDirection: 'row', gap: 12, justifyContent: 'flex-end' },
-});
+  fieldLabel: { ...typography.label, color: c.textMuted },
+  phoneValue: { ...typography.bodyMedium, color: c.text, fontVariant: ['tabular-nums'] },
+  link: { ...typography.label, color: c.accentInk },
+  menu: { paddingVertical: 4, paddingHorizontal: 4 },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: radius.md,
+  },
+  pressed: { backgroundColor: c.surfaceAlt },
+  menuIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.md,
+    backgroundColor: c.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuLabel: { ...typography.bodyMedium, color: c.text, flex: 1 },
+  menuDivider: { height: 1, backgroundColor: c.border, marginLeft: 64 },
+  confirm: {
+    backgroundColor: c.errorSoft,
+    borderRadius: radius.lg,
+    padding: 16,
+    gap: 6,
+  },
+  confirmTitle: { ...typography.h3, color: c.text },
+  confirmText: { ...typography.body, color: c.textMuted },
+  confirmRow: { flexDirection: 'row', gap: 12, justifyContent: 'flex-end', marginTop: 10 },
+  footnote: { ...typography.caption, color: c.textFaint, textAlign: 'center' },
+}));

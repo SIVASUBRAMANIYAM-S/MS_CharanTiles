@@ -1,53 +1,60 @@
-import { BlurView } from 'expo-blur';
 import type { ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, type StyleProp, View, type ViewStyle } from 'react-native';
 
-import { colors } from '@/lib/theme/colors';
+import { makeStyles, radius } from '@/lib/theme';
 
 type CardProps = {
   children: ReactNode;
-  variant?: 'surface' | 'glass';
-  style?: ViewStyle;
+  /** 'surface' = raised panel, 'outline' = flat with a hairline border, 'accent' = gold-tinted highlight. */
+  variant?: 'surface' | 'outline' | 'accent';
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
+  accessibilityLabel?: string;
 };
 
-export function Card({ children, variant = 'surface', style, onPress }: CardProps) {
-  const body =
-    variant === 'glass' ? (
-      <BlurView intensity={40} tint="light" style={[styles.base, styles.glass, style]}>
-        {children}
-      </BlurView>
-    ) : (
-      <View style={[styles.base, styles.surface, style]}>{children}</View>
-    );
+export function Card({
+  children,
+  variant = 'surface',
+  style,
+  onPress,
+  accessibilityLabel,
+}: CardProps) {
+  const styles = useStyles();
+  const cardStyle = [styles.base, styles[variant], style];
 
   if (!onPress) {
-    return body;
+    return <View style={cardStyle}>{children}</View>;
   }
   return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      {body}
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={({ pressed }) => [cardStyle, pressed && styles.pressed]}
+    >
+      {children}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  base: { borderRadius: 16, padding: 16 },
+const useStyles = makeStyles((c, dark) => ({
+  base: { borderRadius: radius.lg, padding: 16 },
   surface: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
+    borderWidth: dark ? 1 : 0,
+    borderColor: c.border,
     ...Platform.select({
       ios: {
-        shadowColor: colors.shadow,
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
+        shadowColor: c.shadow,
+        shadowOpacity: dark ? 0 : 0.06,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 6 },
       },
-      android: { elevation: 2 },
-      web: { boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)' },
+      android: { elevation: dark ? 0 : 2 },
+      web: { boxShadow: dark ? 'none' : '0px 6px 18px rgba(27, 31, 36, 0.06)' },
     }),
   },
-  glass: {
-    overflow: 'hidden',
-    backgroundColor: colors.glassOverlay,
-  },
-});
+  outline: { borderWidth: 1, borderColor: c.border },
+  accent: { backgroundColor: c.accentSoft, borderWidth: 1, borderColor: c.accentSoft },
+  pressed: { opacity: 0.85 },
+}));

@@ -1,12 +1,15 @@
 import { router, Stack } from 'expo-router';
-import { Controller, type Control, useForm } from 'react-hook-form';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ArrowRight } from '@/components/ui/icons';
+import { type Control, Controller, useForm } from 'react-hook-form';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CheckoutSteps } from '@/components/checkout/CheckoutSteps';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCheckoutStore } from '@/lib/store/checkout';
-import { colors } from '@/lib/theme/colors';
+import { makeStyles, typography } from '@/lib/theme';
 import {
   addressLineSchema,
   citySchema,
@@ -26,7 +29,18 @@ type FormValues = {
   pincode: string;
 };
 
+function validateWith(schema: {
+  safeParse: (v: string) => { success: boolean; error?: { issues: { message: string }[] } };
+}) {
+  return (value: string) => {
+    const result = schema.safeParse(value);
+    return result.success || (result.error?.issues[0]?.message ?? 'Invalid value');
+  };
+}
+
 export default function CheckoutAddressScreen() {
+  const insets = useSafeAreaInsets();
+  const styles = useStyles();
   const profile = useAuthStore((state) => state.profile);
   const draftAddress = useCheckoutStore((state) => state.address);
   const setAddress = useCheckoutStore((state) => state.setAddress);
@@ -53,83 +67,94 @@ export default function CheckoutAddressScreen() {
   });
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Delivery address' }} />
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <Stack.Screen options={{ title: 'Checkout' }} />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <CheckoutSteps current={0} />
+        <View style={styles.header}>
+          <Text style={styles.title}>Delivery address</Text>
+          <Text style={styles.subtitle}>Where should we deliver your tiles?</Text>
+        </View>
 
-      <Field
-        control={control}
-        name="fullName"
-        label="Full name"
-        error={errors.fullName?.message}
-        validate={(value) => {
-          const result = fullNameSchema.safeParse(value);
-          return result.success || (result.error.issues[0]?.message ?? 'Invalid name');
-        }}
-      />
-      <Field
-        control={control}
-        name="phone"
-        label="Phone number"
-        keyboardType="phone-pad"
-        maxLength={10}
-        error={errors.phone?.message}
-        validate={(value) => {
-          const result = phoneSchema.safeParse(value);
-          return result.success || (result.error.issues[0]?.message ?? 'Invalid number');
-        }}
-      />
-      <Field
-        control={control}
-        name="line1"
-        label="Address line 1"
-        error={errors.line1?.message}
-        validate={(value) => {
-          const result = addressLineSchema.safeParse(value);
-          return result.success || (result.error.issues[0]?.message ?? 'Invalid address');
-        }}
-      />
-      <Field control={control} name="line2" label="Address line 2 (optional)" />
-      <View style={styles.row}>
-        <View style={styles.half}>
+        <View style={styles.group}>
+          <Text style={styles.groupLabel}>Contact</Text>
           <Field
             control={control}
-            name="city"
-            label="City"
-            error={errors.city?.message}
-            validate={(value) => {
-              const result = citySchema.safeParse(value);
-              return result.success || (result.error.issues[0]?.message ?? 'Invalid city');
-            }}
+            name="fullName"
+            label="Full name"
+            error={errors.fullName?.message}
+            validate={validateWith(fullNameSchema)}
+            autoComplete="name"
           />
-        </View>
-        <View style={styles.half}>
           <Field
             control={control}
-            name="state"
-            label="State"
-            error={errors.state?.message}
-            validate={(value) => {
-              const result = stateSchema.safeParse(value);
-              return result.success || (result.error.issues[0]?.message ?? 'Invalid state');
-            }}
+            name="phone"
+            label="Phone number"
+            keyboardType="phone-pad"
+            maxLength={10}
+            error={errors.phone?.message}
+            validate={validateWith(phoneSchema)}
+            autoComplete="tel"
           />
         </View>
+
+        <View style={styles.group}>
+          <Text style={styles.groupLabel}>Address</Text>
+          <Field
+            control={control}
+            name="line1"
+            label="Address line 1"
+            error={errors.line1?.message}
+            validate={validateWith(addressLineSchema)}
+            autoComplete="street-address"
+          />
+          <Field control={control} name="line2" label="Address line 2 (optional)" />
+          <View style={styles.row}>
+            <View style={styles.half}>
+              <Field
+                control={control}
+                name="city"
+                label="City"
+                error={errors.city?.message}
+                validate={validateWith(citySchema)}
+              />
+            </View>
+            <View style={styles.half}>
+              <Field
+                control={control}
+                name="state"
+                label="State"
+                error={errors.state?.message}
+                validate={validateWith(stateSchema)}
+              />
+            </View>
+          </View>
+          <Field
+            control={control}
+            name="pincode"
+            label="Pincode"
+            keyboardType="number-pad"
+            maxLength={6}
+            error={errors.pincode?.message}
+            validate={validateWith(pincodeSchema)}
+            autoComplete="postal-code"
+          />
+        </View>
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: 12 + insets.bottom }]}>
+        <Button
+          label="Continue to review"
+          onPress={onSubmit}
+          fullWidth
+          size="lg"
+          icon={(color) => <ArrowRight size={18} color={color} weight="bold" />}
+        />
       </View>
-      <Field
-        control={control}
-        name="pincode"
-        label="Pincode"
-        keyboardType="number-pad"
-        maxLength={6}
-        error={errors.pincode?.message}
-        validate={(value) => {
-          const result = pincodeSchema.safeParse(value);
-          return result.success || (result.error.issues[0]?.message ?? 'Invalid pincode');
-        }}
-      />
-
-      <Button label="Continue to Review" onPress={onSubmit} fullWidth />
-    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -142,6 +167,7 @@ function Field({
   validate,
   keyboardType,
   maxLength,
+  autoComplete,
 }: {
   control: Control<FormValues>;
   name: keyof FormValues;
@@ -150,6 +176,7 @@ function Field({
   validate?: (value: string) => true | string;
   keyboardType?: 'phone-pad' | 'number-pad';
   maxLength?: number;
+  autoComplete?: 'name' | 'tel' | 'street-address' | 'postal-code';
 }) {
   return (
     <Controller
@@ -165,15 +192,28 @@ function Field({
           error={error}
           keyboardType={keyboardType}
           maxLength={maxLength}
+          autoComplete={autoComplete}
         />
       )}
     />
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.stone },
-  content: { padding: 16, gap: 16, paddingBottom: 32 },
+const useStyles = makeStyles((c) => ({
+  container: { flex: 1, backgroundColor: c.bg },
+  content: { padding: 16, gap: 24, paddingBottom: 24 },
+  header: { gap: 4 },
+  title: { ...typography.h1, color: c.text },
+  subtitle: { ...typography.body, color: c.textMuted },
+  group: { gap: 16 },
+  groupLabel: { ...typography.h3, color: c.text },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
-});
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    backgroundColor: c.surface,
+    borderTopWidth: 1,
+    borderTopColor: c.border,
+  },
+}));

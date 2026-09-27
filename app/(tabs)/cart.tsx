@@ -1,22 +1,28 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ArrowRight, ShoppingBag } from '@/components/ui/icons';
+import { Fragment, useEffect, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 
 import { CartLineItem } from '@/components/checkout/CartLineItem';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { formatRupees } from '@/components/ui/Price';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { type CartLineDetail, getCartLineDetails } from '@/lib/queries/cart';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCartStore } from '@/lib/store/cart';
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 export default function CartScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const userId = useAuthStore((state) => state.user?.id);
   const items = useCartStore((state) => state.items);
   const cartHydrated = useCartStore((state) => state.hydrated);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
+  const itemCount = useCartStore((state) => state.totalCount());
 
   const [lines, setLines] = useState<CartLineDetail[] | null>(null);
 
@@ -35,88 +41,104 @@ export default function CartScreen() {
   const subtotal = (lines ?? []).reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const hasOutOfStock = (lines ?? []).some((line) => line.stockStatus === 'out_of_stock');
 
-  if (loading) {
+  if (!loading && lines?.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.content}>
-          <Skeleton width="40%" height={32} />
-          <Skeleton width="100%" height={100} borderRadius={12} />
-          <Skeleton width="100%" height={100} borderRadius={12} />
-        </View>
-      </View>
-    );
-  }
-
-  if (lines && lines.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={typography.h2}>Your cart is empty</Text>
-        <Text style={styles.emptySubtitle}>Browse the catalog and add a tile you like.</Text>
-        <Button label="Browse Catalog" onPress={() => router.push('/catalog')} />
+        <ScreenHeader title="Cart" />
+        <EmptyState
+          icon={<ShoppingBag size={30} color={colors.accentInk} weight="fill" />}
+          title="Your cart is empty"
+          body="Browse the catalog and add a tile you like."
+          actionLabel="Browse catalog"
+          onAction={() => router.push('/catalog')}
+        />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={typography.h1}>Cart</Text>
-        {lines?.map((line) => (
-          <CartLineItem
-            key={`${line.productId}-${line.variantId ?? 'base'}`}
-            line={line}
-            onIncrement={() =>
-              updateQuantity(userId, line.productId, line.variantId, line.quantity + 1)
-            }
-            onDecrement={() =>
-              updateQuantity(userId, line.productId, line.variantId, line.quantity - 1)
-            }
-            onRemove={() => removeItem(userId, line.productId, line.variantId)}
-          />
-        ))}
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <ScreenHeader
+          title="Cart"
+          subtitle={loading ? undefined : `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`}
+        />
+        <View style={styles.list}>
+          {loading
+            ? Array.from({ length: 2 }).map((_, index) => (
+                <Skeleton key={index} width="100%" height={92} borderRadius={radius.md} />
+              ))
+            : lines?.map((line, index) => (
+                <Fragment key={`${line.productId}-${line.variantId ?? 'base'}`}>
+                  {index > 0 && <View style={styles.divider} />}
+                  <CartLineItem
+                    line={line}
+                    onIncrement={() =>
+                      updateQuantity(userId, line.productId, line.variantId, line.quantity + 1)
+                    }
+                    onDecrement={() =>
+                      updateQuantity(userId, line.productId, line.variantId, line.quantity - 1)
+                    }
+                    onRemove={() => removeItem(userId, line.productId, line.variantId)}
+                  />
+                </Fragment>
+              ))}
+        </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        {hasOutOfStock && (
-          <Text style={styles.outOfStockNote}>
-            Remove out-of-stock items above before checking out.
-          </Text>
-        )}
-        <View style={styles.subtotalRow}>
-          <Text style={typography.bodyMedium}>Subtotal</Text>
-          <Text style={styles.subtotalValue}>₹{subtotal.toFixed(0)}</Text>
+      {!loading && (
+        <View style={styles.footer}>
+          {hasOutOfStock && (
+            <Text style={styles.outOfStockNote}>
+              Remove out-of-stock items before checking out.
+            </Text>
+          )}
+          <View style={styles.row}>
+            <Text style={styles.muted}>Subtotal</Text>
+            <Text style={styles.value}>{formatRupees(subtotal)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.muted}>Shipping</Text>
+            <Text style={styles.free}>Free</Text>
+          </View>
+          <View style={[styles.row, styles.totalRow]}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>{formatRupees(subtotal)}</Text>
+          </View>
+          <Button
+            label="Proceed to checkout"
+            onPress={() => router.push('/checkout/address')}
+            disabled={hasOutOfStock}
+            fullWidth
+            size="lg"
+            icon={(color) => <ArrowRight size={18} color={color} weight="bold" />}
+          />
         </View>
-        <Button
-          label="Proceed to Checkout"
-          onPress={() => router.push('/checkout/address')}
-          disabled={hasOutOfStock}
-          fullWidth
-        />
-      </View>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.stone },
-  content: { padding: 16, gap: 16, paddingBottom: 16 },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 24,
-    backgroundColor: colors.stone,
-  },
-  emptySubtitle: { ...typography.body, color: colors.muted, textAlign: 'center' },
+const useStyles = makeStyles((c) => ({
+  container: { flex: 1, backgroundColor: c.bg },
+  scroll: { paddingBottom: 24 },
+  list: { paddingHorizontal: 16, paddingTop: 12, gap: 18 },
+  divider: { height: 1, backgroundColor: c.border },
   footer: {
     padding: 16,
-    gap: 10,
+    gap: 8,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.white,
+    borderTopColor: c.border,
+    backgroundColor: c.surface,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
   },
-  outOfStockNote: { ...typography.caption, color: colors.error },
-  subtotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  subtotalValue: { ...typography.h3, color: colors.ink },
-});
+  outOfStockNote: { ...typography.caption, color: c.error },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  muted: { ...typography.body, color: c.textMuted },
+  value: { ...typography.bodyMedium, color: c.text, fontVariant: ['tabular-nums'] },
+  free: { ...typography.bodyMedium, color: c.success },
+  totalRow: { paddingTop: 8, marginBottom: 8, borderTopWidth: 1, borderTopColor: c.border },
+  totalLabel: { ...typography.h3, color: c.text },
+  totalValue: { ...typography.h2, color: c.text, fontVariant: ['tabular-nums'] },
+}));

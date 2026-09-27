@@ -20,6 +20,9 @@ export type ProductCardFields = {
   stock_status: string;
   is_featured: boolean;
   product_images: Pick<ProductImage, 'url' | 'sort_order'>[];
+  /** Optional: shown as a spec line on the card when the query selected them. */
+  size?: string | null;
+  finish?: string | null;
 };
 
 /** Shape returned by the list/search queries below — a product plus just enough

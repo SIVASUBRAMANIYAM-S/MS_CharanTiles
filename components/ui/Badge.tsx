@@ -1,7 +1,6 @@
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { colors } from '@/lib/theme/colors';
-import { fontFamily } from '@/lib/theme/typography';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 type BadgeTone = 'featured' | 'lowStock' | 'outOfStock' | 'neutral';
 
@@ -11,27 +10,31 @@ type BadgeProps = {
 };
 
 export function Badge({ label, tone = 'neutral' }: BadgeProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
+  // Solid fills (not tints) so badges stay legible when laid over photos.
+  const tones: Record<BadgeTone, { bg: string; fg: string }> = {
+    featured: { bg: colors.accent, fg: colors.onAccent },
+    lowStock: { bg: colors.warning, fg: colors.onAccent },
+    outOfStock: { bg: colors.borderStrong, fg: colors.text },
+    neutral: { bg: colors.surfaceAlt, fg: colors.text },
+  };
+  const { bg, fg } = tones[tone];
+
   return (
-    <View style={[styles.base, toneStyles[tone]]}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[styles.base, { backgroundColor: bg }]}>
+      <Text style={[styles.label, { color: fg }]}>{label}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   base: {
     alignSelf: 'flex-start',
-    borderRadius: 6,
+    borderRadius: radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  // Ink text on every tone keeps contrast readable on the light gold/amber/grey fills.
-  label: { fontFamily: fontFamily.bodySemiBold, fontSize: 12, lineHeight: 16, color: colors.ink },
-});
-
-const toneStyles: Record<BadgeTone, ViewStyle> = {
-  featured: { backgroundColor: colors.gold },
-  lowStock: { backgroundColor: colors.warning },
-  outOfStock: { backgroundColor: colors.muted },
-  neutral: { backgroundColor: colors.surface },
-};
+  label: { ...typography.caption },
+}));

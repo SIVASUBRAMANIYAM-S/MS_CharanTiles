@@ -1,27 +1,24 @@
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
-import { StyleSheet } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 
-import { colors } from '@/lib/theme/colors';
+import { brand, makeStyles } from '@/lib/theme';
 
 /**
  * Full-screen in-app splash shown after the native splash hides, while auth
- * init (and any other startup work) finishes. Distinct from expo-splash-screen's
- * static native splash — this one can animate.
+ * init finishes. Charcoal in both color modes: it continues the native splash
+ * (same background) and is the one fixed brand moment in the app.
  */
 export function BrandSplash() {
+  const styles = useStyles();
+  const reduceMotion = useReducedMotion();
+
   return (
-    <LinearGradient
-      colors={[colors.navy, colors.primary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <MotiView style={styles.container}>
       <MotiView
-        from={{ opacity: 0, scale: 0.85 }}
+        from={reduceMotion ? undefined : { opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: 'timing', duration: 500 }}
+        transition={{ type: 'timing', duration: 600 }}
       >
         <Image
           // Metro resolves local image requires at bundle time; no ESM type exists for them.
@@ -29,13 +26,20 @@ export function BrandSplash() {
           source={require('@/assets/images/splash-icon.png')}
           style={styles.logo}
           contentFit="contain"
+          accessibilityLabel="MS Charan Tiles"
         />
       </MotiView>
-    </LinearGradient>
+      <MotiView
+        from={reduceMotion ? undefined : { scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={{ type: 'timing', duration: 700, delay: 250 }}
+        style={styles.rule}
+      />
+    </MotiView>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   container: {
     position: 'absolute',
     top: 0,
@@ -44,7 +48,9 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: brand.charcoal,
     zIndex: 10,
   },
   logo: { width: 200, height: 200 },
-});
+  rule: { width: 64, height: 2, borderRadius: 1, backgroundColor: brand.gold, marginTop: 4 },
+}));

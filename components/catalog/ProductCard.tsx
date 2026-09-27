@@ -1,11 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Heart } from '@/components/ui/icons';
+import { Pressable, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
+import { IconButton } from '@/components/ui/IconButton';
+import { Price } from '@/components/ui/Price';
 import type { ProductCardFields } from '@/lib/queries/products';
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 type ProductCardProps = {
   product: ProductCardFields;
@@ -20,27 +21,32 @@ export function ProductCard({
   wishlisted = false,
   onToggleWishlist,
 }: ProductCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const image = [...product.product_images].sort((a, b) => a.sort_order - b.sort_order)[0];
-  const hasDiscount = product.mrp !== null && product.mrp > product.price;
+  const specs = [product.size, product.finish].filter(Boolean).join(' · ');
 
   return (
-    // The heart button is a sibling of the navigate-to-product Pressable, not a
-    // descendant of it — nesting two <Pressable accessibilityRole="button">
-    // renders as a <button> inside a <button> on web, which is invalid HTML.
+    // The heart is a sibling of the navigate-to-product Pressable, not a
+    // descendant: two nested accessibilityRole="button" Pressables render as a
+    // <button> inside a <button> on web, which is invalid HTML.
     <View style={styles.card}>
-      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={product.name}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={product.name}
+        style={({ pressed }) => pressed && styles.pressed}
+      >
         <View style={styles.imageWrap}>
           {image ? (
             <Image
               source={{ uri: image.url }}
               style={styles.image}
               contentFit="cover"
-              transition={150}
+              transition={200}
+              accessibilityIgnoresInvertColors
             />
-          ) : (
-            <View style={[styles.image, styles.imageFallback]} />
-          )}
-
+          ) : null}
           <View style={styles.badgeRow}>
             {product.is_featured && <Badge label="Featured" tone="featured" />}
             {product.stock_status === 'low_stock' && <Badge label="Low stock" tone="lowStock" />}
@@ -50,58 +56,51 @@ export function ProductCard({
           </View>
         </View>
 
-        <Text style={styles.name} numberOfLines={2}>
-          {product.name}
-        </Text>
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>₹{product.price.toFixed(0)}</Text>
-          {hasDiscount && <Text style={styles.mrp}>₹{product.mrp!.toFixed(0)}</Text>}
+        <View style={styles.info}>
+          <Text style={styles.name} numberOfLines={2}>
+            {product.name}
+          </Text>
+          {specs ? (
+            <Text style={styles.specs} numberOfLines={1}>
+              {specs}
+            </Text>
+          ) : null}
+          <Price price={product.price} mrp={product.mrp} size="sm" />
         </View>
       </Pressable>
 
       {onToggleWishlist && (
-        <Pressable
+        <IconButton
+          tone="overlay"
+          size={34}
           onPress={onToggleWishlist}
-          style={styles.heartButton}
-          hitSlop={8}
-          accessibilityRole="button"
           accessibilityLabel={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          style={styles.heart}
         >
-          <Ionicons
-            name={wishlisted ? 'heart' : 'heart-outline'}
+          <Heart
             size={18}
-            color={wishlisted ? colors.error : colors.ink}
+            weight={wishlisted ? 'fill' : 'regular'}
+            color={wishlisted ? colors.accent : colors.text}
           />
-        </Pressable>
+        </IconButton>
       )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: { flex: 1, gap: 6 },
+const useStyles = makeStyles((c) => ({
+  card: { flex: 1 },
+  pressed: { opacity: 0.85 },
   imageWrap: {
-    aspectRatio: 1,
-    borderRadius: 12,
+    aspectRatio: 4 / 5,
+    borderRadius: radius.lg,
     overflow: 'hidden',
-    backgroundColor: colors.surface,
+    backgroundColor: c.surfaceAlt,
   },
   image: { width: '100%', height: '100%' },
-  imageFallback: { backgroundColor: colors.surface },
-  heartButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeRow: { position: 'absolute', left: 8, top: 8, gap: 4 },
-  name: { ...typography.bodyMedium, color: colors.ink },
-  priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  price: { ...typography.bodyMedium, color: colors.primary },
-  mrp: { ...typography.caption, color: colors.muted, textDecorationLine: 'line-through' },
-});
+  badgeRow: { position: 'absolute', left: 10, top: 10, gap: 4 },
+  heart: { position: 'absolute', top: 10, right: 10 },
+  info: { paddingTop: 10, gap: 3 },
+  name: { ...typography.bodyMedium, color: c.text },
+  specs: { ...typography.caption, color: c.textMuted, textTransform: 'capitalize' },
+}));

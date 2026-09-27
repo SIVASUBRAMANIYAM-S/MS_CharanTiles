@@ -1,13 +1,13 @@
 import { type Href, router, Stack, useLocalSearchParams } from 'expo-router';
+import { ShieldCheck, WarningCircle } from '@/components/ui/icons';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/lib/store/auth';
-import { colors } from '@/lib/theme/colors';
-import { typography } from '@/lib/theme/typography';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 import { MOCK_OTP_CODE, otpSchema } from '@/lib/validation';
 
 type FormValues = { code: string };
@@ -16,6 +16,8 @@ const RESEND_SECONDS = 60;
 
 export default function VerifyOtpScreen() {
   const { phone, redirect } = useLocalSearchParams<{ phone: string; redirect?: string }>();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const attachPhone = useAuthStore((state) => state.attachPhone);
 
   const [countdown, setCountdown] = useState(RESEND_SECONDS);
@@ -49,7 +51,7 @@ export default function VerifyOtpScreen() {
       router.replace((redirect as Href | undefined) ?? '/(tabs)/profile');
     } catch (error) {
       console.warn('Failed to attach phone', error);
-      setSubmitError('Could not save this number — it may already be in use on another account.');
+      setSubmitError('We could not save this number. It may already be in use on another account.');
     }
   });
 
@@ -60,52 +62,101 @@ export default function VerifyOtpScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: 'Verify code' }} />
-      <Text style={typography.h1}>Enter the code</Text>
-      <Text style={styles.subtitle}>We sent a 6-digit code to {phone}</Text>
-
-      <Controller
-        control={control}
-        name="code"
-        rules={{
-          validate: (value) => {
-            const result = otpSchema.safeParse(value);
-            return result.success || (result.error.issues[0]?.message ?? 'Invalid code');
-          },
-        }}
-        render={({ field: { value, onChange, onBlur } }) => (
-          <Input
-            label="6-digit code"
-            placeholder="123456"
-            keyboardType="number-pad"
-            maxLength={6}
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            error={errors.code?.message}
-            autoFocus
-          />
-        )}
-      />
-
-      {submitError && <Text style={styles.errorText}>{submitError}</Text>}
-
-      <Button label="Verify" onPress={onSubmit} loading={isSubmitting} fullWidth />
-
-      <Pressable onPress={handleResend} disabled={countdown > 0} accessibilityRole="button">
-        <Text style={[styles.resendText, countdown > 0 && styles.resendTextDisabled]}>
-          {countdown > 0 ? `Resend OTP in ${countdown}s` : 'Resend OTP'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <Stack.Screen options={{ title: '' }} />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.icon}>
+          <ShieldCheck size={30} color={colors.onAccent} weight="fill" />
+        </View>
+        <Text style={styles.title}>Enter the code</Text>
+        <Text style={styles.subtitle}>
+          Sent to <Text style={styles.phone}>+91 {phone}</Text>
         </Text>
-      </Pressable>
-    </View>
+
+        <Controller
+          control={control}
+          name="code"
+          rules={{
+            validate: (value) => {
+              const result = otpSchema.safeParse(value);
+              return result.success || (result.error.issues[0]?.message ?? 'Invalid code');
+            },
+          }}
+          render={({ field: { value, onChange, onBlur } }) => (
+            <Input
+              label="6-digit code"
+              placeholder="123456"
+              keyboardType="number-pad"
+              maxLength={6}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.code?.message}
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
+              autoFocus
+              style={styles.codeInput}
+            />
+          )}
+        />
+
+        {submitError && (
+          <View style={styles.error}>
+            <WarningCircle size={20} color={colors.error} weight="fill" />
+            <Text style={styles.errorText}>{submitError}</Text>
+          </View>
+        )}
+
+        <Button label="Verify" onPress={onSubmit} loading={isSubmitting} fullWidth size="lg" />
+
+        <Pressable
+          onPress={handleResend}
+          disabled={countdown > 0}
+          accessibilityRole="button"
+          style={styles.resend}
+        >
+          <Text style={[styles.resendText, countdown > 0 && styles.resendTextDisabled]}>
+            {countdown > 0 ? `Resend code in ${countdown}s` : 'Resend code'}
+          </Text>
+        </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.stone, padding: 16, gap: 16 },
-  subtitle: { ...typography.body, color: colors.muted },
-  errorText: { ...typography.body, color: colors.error },
-  resendText: { ...typography.bodyMedium, color: colors.primary, textAlign: 'center' },
-  resendTextDisabled: { color: colors.muted },
-});
+const useStyles = makeStyles((c) => ({
+  container: { flex: 1, backgroundColor: c.bg },
+  content: { padding: 24, gap: 20 },
+  icon: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.lg,
+    backgroundColor: c.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: { ...typography.h1, color: c.text, marginTop: -4 },
+  subtitle: { ...typography.body, color: c.textMuted, marginTop: -8 },
+  phone: { ...typography.bodyMedium, color: c.text },
+  codeInput: {
+    ...typography.h2,
+    letterSpacing: 8,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
+  error: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: radius.md,
+    backgroundColor: c.errorSoft,
+  },
+  errorText: { ...typography.body, color: c.text, flex: 1 },
+  resend: { alignSelf: 'center', padding: 6 },
+  resendText: { ...typography.label, color: c.accentInk },
+  resendTextDisabled: { color: c.textMuted },
+}));

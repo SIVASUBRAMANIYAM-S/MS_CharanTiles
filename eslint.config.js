@@ -46,6 +46,20 @@ module.exports = [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      // Import icons from '@/components/ui/icons' (one file per icon). The package
+      // root re-exports ~1500 icons and blew up Metro with EMFILE on Windows.
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'phosphor-react-native',
+              message: "Import icons from '@/components/ui/icons' instead.",
+              allowTypeImports: true,
+            },
+          ],
+        },
+      ],
     },
   },
   {

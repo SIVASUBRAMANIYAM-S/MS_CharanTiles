@@ -1,13 +1,14 @@
 import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { SquaresFour } from '@/components/ui/icons';
+import { View } from 'react-native';
 
 import { ProductCard } from '@/components/catalog/ProductCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import type { ProductCardFields } from '@/lib/queries/products';
 import { useAuthStore } from '@/lib/store/auth';
 import { useWishlistStore } from '@/lib/store/wishlist';
-import { typography } from '@/lib/theme/typography';
-import { colors } from '@/lib/theme/colors';
+import { makeStyles, radius, useTheme } from '@/lib/theme';
 
 type ProductGridProps = {
   /** null renders skeleton placeholders (loading state). */
@@ -19,8 +20,10 @@ type ProductGridProps = {
 export function ProductGrid({
   products,
   emptyMessage = 'No products found.',
-  skeletonCount = 6,
+  skeletonCount = 4,
 }: ProductGridProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const userId = useAuthStore((state) => state.user?.id);
   const isWishlisted = useWishlistStore((state) => state.isWishlisted);
   const toggleWishlist = useWishlistStore((state) => state.toggle);
@@ -30,7 +33,11 @@ export function ProductGrid({
       <View style={styles.grid}>
         {Array.from({ length: skeletonCount }).map((_, index) => (
           <View key={index} style={styles.cell}>
-            <Skeleton width="100%" height={160} borderRadius={12} />
+            <Skeleton width="100%" height={210} borderRadius={radius.lg} />
+            <View style={styles.skeletonText}>
+              <Skeleton width="80%" height={14} />
+              <Skeleton width="40%" height={14} />
+            </View>
           </View>
         ))}
       </View>
@@ -38,7 +45,9 @@ export function ProductGrid({
   }
 
   if (products.length === 0) {
-    return <Text style={styles.empty}>{emptyMessage}</Text>;
+    return (
+      <EmptyState icon={<SquaresFour size={30} color={colors.accentInk} />} title={emptyMessage} />
+    );
   }
 
   return (
@@ -57,8 +66,8 @@ export function ProductGrid({
   );
 }
 
-const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  cell: { width: '47%' },
-  empty: { ...typography.body, color: colors.muted, padding: 16, textAlign: 'center' },
-});
+const useStyles = makeStyles(() => ({
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 24 },
+  cell: { width: '48%' },
+  skeletonText: { gap: 6, marginTop: 10 },
+}));
