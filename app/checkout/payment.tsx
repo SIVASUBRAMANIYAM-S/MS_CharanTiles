@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
-import { CreditCard, Lock, WarningCircle } from '@/components/ui/icons';
+import { CalendarCheck, CreditCard, Lock, WarningCircle } from '@/components/ui/icons';
 import { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
@@ -10,6 +10,7 @@ import { CheckoutSteps } from '@/components/checkout/CheckoutSteps';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatRupees } from '@/components/ui/Price';
+import { estimateDeliveryWindow, formatDeliveryWindow } from '@/lib/delivery';
 import { type CartLineDetail, clearCartItems, getCartLineDetails } from '@/lib/queries/cart';
 import { createOrder } from '@/lib/queries/orders';
 import { estimateShipping } from '@/lib/shipping';
@@ -133,6 +134,13 @@ export default function CheckoutPaymentScreen() {
       // Not resetCheckout() here: this screen's own effect could race its
       // "no address -> back to /checkout/address" redirect against this
       // navigation. Confirmation resets it instead, once this screen is covered.
+      //
+      // dismissAll() first: address/review/payment were all pushed onto the
+      // stack, so a plain replace() here would leave them underneath
+      // confirmation — back from "View order" would land back in checkout
+      // instead of on a tab screen. Dismissing back to the tab root before
+      // placing confirmation on top fixes that for every screen reached from here.
+      router.dismissAll();
       router.replace({ pathname: '/checkout/confirmation', params: { orderId } });
     } catch (error) {
       console.warn('Order creation failed', error);
@@ -153,6 +161,13 @@ export default function CheckoutPaymentScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <CheckoutSteps current={2} />
         <Text style={styles.title}>Payment</Text>
+
+        <View style={styles.deliveryEstimate}>
+          <CalendarCheck size={18} color={colors.accentInk} weight="fill" />
+          <Text style={styles.deliveryEstimateText}>
+            Estimated delivery: {formatDeliveryWindow(estimateDeliveryWindow())}
+          </Text>
+        </View>
 
         {/* Live preview of the card being entered. Purely visual. */}
         <LinearGradient
@@ -336,6 +351,16 @@ const useStyles = makeStyles((c) => ({
   container: { flex: 1, backgroundColor: c.bg },
   content: { padding: 16, gap: 20, paddingBottom: 24 },
   title: { ...typography.h1, color: c.text },
+  deliveryEstimate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: radius.lg,
+    backgroundColor: c.accentSoft,
+    marginTop: -6,
+  },
+  deliveryEstimateText: { ...typography.bodyMedium, color: c.text, flex: 1 },
   card: {
     aspectRatio: 1.586,
     borderRadius: radius.xl,

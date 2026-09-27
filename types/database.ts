@@ -232,6 +232,8 @@ export type Database = {
       orders: {
         Row: {
           created_at: string;
+          estimated_delivery_from: string | null;
+          estimated_delivery_to: string | null;
           id: string;
           payment_id: string | null;
           payment_status: string;
@@ -243,6 +245,8 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          estimated_delivery_from?: string | null;
+          estimated_delivery_to?: string | null;
           id?: string;
           payment_id?: string | null;
           payment_status?: string;
@@ -254,6 +258,8 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          estimated_delivery_from?: string | null;
+          estimated_delivery_to?: string | null;
           id?: string;
           payment_id?: string | null;
           payment_status?: string;
@@ -434,6 +440,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string;
+          default_address: Json | null;
           full_name: string | null;
           id: string;
           phone: string | null;
@@ -441,6 +448,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          default_address?: Json | null;
           full_name?: string | null;
           id: string;
           phone?: string | null;
@@ -448,6 +456,7 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          default_address?: Json | null;
           full_name?: string | null;
           id?: string;
           phone?: string | null;

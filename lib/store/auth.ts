@@ -4,12 +4,14 @@ import { create } from 'zustand';
 import { useCartStore } from '@/lib/store/cart';
 import { useWishlistStore } from '@/lib/store/wishlist';
 import { supabase } from '@/lib/supabase';
+import type { ShippingAddress } from '@/lib/queries/orders';
 
 export type Profile = {
   id: string;
   full_name: string | null;
   phone: string | null;
   role: string;
+  default_address: ShippingAddress | null;
 };
 
 type AuthState = {
@@ -22,6 +24,7 @@ type AuthState = {
   refreshProfile: () => Promise<void>;
   attachPhone: (phone: string) => Promise<void>;
   updateFullName: (name: string) => Promise<void>;
+  saveDefaultAddress: (address: ShippingAddress) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -35,14 +38,16 @@ async function ensureProfile(user: User): Promise<void> {
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, phone, role')
+    .select('id, full_name, phone, role, default_address')
     .eq('id', userId)
     .maybeSingle();
   if (error) {
     console.warn('Failed to load profile for', userId, error);
     return null;
   }
-  return data;
+  // jsonb comes back as `Json`, structurally identical to ShippingAddress here —
+  // this table only ever gets that shape written to it (see saveDefaultAddress).
+  return data as Profile | null;
 }
 
 // Subscribed once, at module scope, so signOut() -> init() re-bootstrapping a
@@ -126,6 +131,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { error } = await supabase.from('profiles').update({ full_name: name }).eq('id', userId);
     if (error) throw error;
     await get().refreshProfile();
+  },
+
+  // Remembers this address for next time (checkout/address.tsx pre-fills from
+  // it). Fire-and-forget from the caller's point of view — a failure here
+  // shouldn't block checkout, since the order itself doesn't depend on it.
+  saveDefaultAddress: async (address) => {
+    const userId = get().user?.id;
+    if (!userId) return;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ default_address: address })
+      .eq('id', userId);
+    if (error) {
+      console.warn('Failed to save default address', error);
+      return;
+    }
+    set((state) =>
+      state.profile ? { profile: { ...state.profile, default_address: address } } : {},
+    );
   },
 
   // Destroys the anonymous session entirely, so its cart/wishlist (scoped to
