@@ -4,6 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'MS Charan Tiles',
   slug: 'mscharantiles',
+  owner: 'sivasaravanan4920',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
@@ -58,5 +59,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
+  },
+  extra: {
+    eas: {
+      projectId: 'c8724ec4-df8b-4630-ba6a-6e9109fc97e3',
+    },
   },
 });
