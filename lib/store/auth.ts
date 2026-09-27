@@ -140,6 +140,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // init() doesn't need loading:true to re-run — its early-return guard checks
   // `session`, which is already cleared below.
   signOut: async () => {
+    // profiles.phone is unique, and this POC has no way to sign back into an
+    // abandoned anonymous session by phone — so without this, the number
+    // stays stuck on the old (now unreachable) account and can never be
+    // attached again, even by the same person re-entering it right after.
+    const outgoingUserId = get().user?.id;
+    if (outgoingUserId) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ phone: null })
+        .eq('id', outgoingUserId);
+      if (error) console.warn('Failed to release phone number before sign-out', error);
+    }
     await supabase.auth.signOut();
     useCartStore.getState().clear();
     useWishlistStore.getState().reset();
