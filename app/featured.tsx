@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
+import { CartHeaderButton } from '@/components/catalog/CartHeaderButton';
 import { ProductGrid } from '@/components/catalog/ProductGrid';
 import { getFeaturedProducts, type ProductCardData } from '@/lib/queries/products';
 import { makeStyles, typography } from '@/lib/theme';
@@ -21,7 +22,9 @@ export default function FeaturedScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Featured tiles' }} />
+      <Stack.Screen
+        options={{ title: 'Featured tiles', headerRight: () => <CartHeaderButton /> }}
+      />
       <View style={styles.intro}>
         <Text style={styles.title}>Featured tiles</Text>
         <Text style={styles.subtitle}>

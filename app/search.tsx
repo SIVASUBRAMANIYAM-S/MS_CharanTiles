@@ -4,6 +4,7 @@ import { Camera, CaretRight, MagnifyingGlass, X } from '@/components/ui/icons';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { CartHeaderButton } from '@/components/catalog/CartHeaderButton';
 import { ProductGrid } from '@/components/catalog/ProductGrid';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
@@ -90,7 +91,7 @@ export default function SearchScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Stack.Screen options={{ title: 'Search' }} />
+      <Stack.Screen options={{ title: 'Search', headerRight: () => <CartHeaderButton /> }} />
 
       <View style={styles.searchBar}>
         <MagnifyingGlass size={20} color={colors.textMuted} weight="bold" />

@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AddToCartControl } from '@/components/catalog/AddToCartControl';
+import { CartHeaderButton } from '@/components/catalog/CartHeaderButton';
 import { ProductGrid } from '@/components/catalog/ProductGrid';
 import {
   Highlights,
@@ -35,9 +37,8 @@ import {
   type ProductCardData,
   type ProductWithDetails,
 } from '@/lib/queries/products';
-import { useAuthStore } from '@/lib/store/auth';
-import { useCartStore } from '@/lib/store/cart';
 import { capitalize, formatSize } from '@/lib/specs';
+import { useAuthStore } from '@/lib/store/auth';
 import { useWishlistStore } from '@/lib/store/wishlist';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
@@ -58,7 +59,6 @@ export default function ProductScreen() {
   const userId = useAuthStore((state) => state.user?.id);
   const isWishlisted = useWishlistStore((state) => state.isWishlisted(product?.id ?? ''));
   const toggleWishlist = useWishlistStore((state) => state.toggle);
-  const addToCart = useCartStore((state) => state.addItem);
 
   useEffect(() => {
     if (!id) return;
@@ -97,9 +97,7 @@ export default function ProductScreen() {
     setImageIndex(Math.round(event.nativeEvent.contentOffset.x / width));
   };
 
-  const handleAddToCart = () => {
-    if (!product) return;
-    addToCart(userId, product.id, selectedVariantId);
+  const handleAdded = () => {
     setAddedMessage(true);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setAddedMessage(false), 2600);
@@ -139,7 +137,7 @@ export default function ProductScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: product.name }} />
+      <Stack.Screen options={{ title: product.name, headerRight: () => <CartHeaderButton /> }} />
       <ScrollView contentContainerStyle={{ paddingBottom: 110 + insets.bottom }}>
         <View style={{ height: galleryHeight }}>
           <ScrollView
@@ -285,12 +283,12 @@ export default function ProductScreen() {
           />
         </View>
         <View style={styles.actionPrimary}>
-          <Button
-            label="Add to cart"
-            onPress={handleAddToCart}
-            fullWidth
+          <AddToCartControl
+            userId={userId}
+            productId={product.id}
+            variantId={selectedVariantId}
             disabled={outOfStock}
-            icon={(color) => <ShoppingBag size={18} color={color} weight="bold" />}
+            onAdd={handleAdded}
           />
         </View>
       </View>
