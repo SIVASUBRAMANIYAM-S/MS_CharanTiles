@@ -38,7 +38,9 @@ export default function HomeScreen() {
   const [collections, setCollections] = useState<Collection[] | null>(null);
 
   const userId = useAuthStore((state) => state.user?.id);
-  const isWishlisted = useWishlistStore((state) => state.isWishlisted);
+  // Subscribe to productIds itself (see ProductGrid for why selecting the
+  // isWishlisted function doesn't re-render this list on toggle).
+  const wishlistIds = useWishlistStore((state) => state.productIds);
   const toggleWishlist = useWishlistStore((state) => state.toggle);
 
   useEffect(() => {
@@ -163,7 +165,7 @@ export default function HomeScreen() {
             <FeaturedSpotlight
               product={spotlight}
               onPress={() => router.push(`/product/${spotlight.id}`)}
-              wishlisted={isWishlisted(spotlight.id)}
+              wishlisted={wishlistIds.includes(spotlight.id)}
               onToggleWishlist={userId ? () => toggleWishlist(userId, spotlight.id) : undefined}
             />
           ) : null}
@@ -182,7 +184,7 @@ export default function HomeScreen() {
                   <ProductCard
                     product={product}
                     onPress={() => router.push(`/product/${product.id}`)}
-                    wishlisted={isWishlisted(product.id)}
+                    wishlisted={wishlistIds.includes(product.id)}
                     onToggleWishlist={userId ? () => toggleWishlist(userId, product.id) : undefined}
                   />
                 </View>
