@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryCard } from '@/components/catalog/CategoryCard';
 import { CollectionCard } from '@/components/catalog/CollectionCard';
+import { FeaturedSpotlight } from '@/components/catalog/FeaturedSpotlight';
 import { ProductCard } from '@/components/catalog/ProductCard';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -24,6 +25,9 @@ import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 // Marketing chrome, not DB-driven: the blue marble bathroom from the Ocean Mist listing.
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1701251786408-d0320ecaad8d?w=1200&q=80&fm=jpg&fit=crop&auto=format';
+
+// The rest live on the "See all" featured screen.
+const FEATURED_ROW_LIMIT = 8;
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -57,6 +61,9 @@ export default function HomeScreen() {
         setCollections([]);
       });
   }, []);
+
+  const [spotlight, ...rest] = featured ?? [];
+  const featuredRow = rest.slice(0, FEATURED_ROW_LIMIT);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -146,8 +153,20 @@ export default function HomeScreen() {
           <SectionHeader
             title="Featured tiles"
             actionLabel="See all"
-            onAction={() => router.push('/catalog')}
+            onAction={() => router.push('/featured')}
           />
+        </View>
+        <View style={styles.padded}>
+          {featured === null ? (
+            <Skeleton width="100%" height={380} borderRadius={radius.xl} />
+          ) : spotlight ? (
+            <FeaturedSpotlight
+              product={spotlight}
+              onPress={() => router.push(`/product/${spotlight.id}`)}
+              wishlisted={isWishlisted(spotlight.id)}
+              onToggleWishlist={userId ? () => toggleWishlist(userId, spotlight.id) : undefined}
+            />
+          ) : null}
         </View>
         <ScrollView
           horizontal
@@ -158,7 +177,7 @@ export default function HomeScreen() {
             ? Array.from({ length: 3 }).map((_, index) => (
                 <Skeleton key={index} width={168} height={250} borderRadius={radius.lg} />
               ))
-            : featured.map((product) => (
+            : featuredRow.map((product) => (
                 <View key={product.id} style={styles.productItem}>
                   <ProductCard
                     product={product}
