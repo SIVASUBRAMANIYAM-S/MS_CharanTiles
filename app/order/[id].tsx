@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { MapPin, Receipt, Truck } from '@/components/ui/icons';
+import { CalendarCheck, MapPin, Receipt, Truck } from '@/components/ui/icons';
 import { Fragment, useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
@@ -9,24 +9,9 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatRupees } from '@/components/ui/Price';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { getOrderById, type OrderWithItems, type ShippingAddress } from '@/lib/queries/orders';
+import { formatDeliveryWindow, parseDateOnly } from '@/lib/delivery';
+import { getOrderById, readShippingAddress, type OrderWithItems } from '@/lib/queries/orders';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
-
-function readShippingAddress(order: OrderWithItems): ShippingAddress | null {
-  const raw = order.shipping_address;
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const address = raw as Record<string, unknown>;
-  if (typeof address.fullName !== 'string' || typeof address.line1 !== 'string') return null;
-  return {
-    fullName: address.fullName,
-    phone: typeof address.phone === 'string' ? address.phone : '',
-    line1: address.line1,
-    line2: typeof address.line2 === 'string' ? address.line2 : '',
-    city: typeof address.city === 'string' ? address.city : '',
-    state: typeof address.state === 'string' ? address.state : '',
-    pincode: typeof address.pincode === 'string' ? address.pincode : '',
-  };
-}
 
 const dateFormat = new Intl.DateTimeFormat('en-IN', {
   day: 'numeric',
@@ -77,6 +62,17 @@ export default function OrderScreen() {
 
   const address = readShippingAddress(order);
   const orderNumber = order.id.slice(0, 8).toUpperCase();
+  const subtotal = order.order_items.reduce(
+    (sum, item) => sum + item.price_at_purchase * item.quantity,
+    0,
+  );
+  const deliveryWindow =
+    order.estimated_delivery_from && order.estimated_delivery_to
+      ? {
+          from: parseDateOnly(order.estimated_delivery_from),
+          to: parseDateOnly(order.estimated_delivery_to),
+        }
+      : null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -93,6 +89,16 @@ export default function OrderScreen() {
           <OrderStatusStepper status={order.status} />
         </View>
       </Card>
+
+      {deliveryWindow && (
+        <View style={styles.deliveryEstimate}>
+          <CalendarCheck size={18} color={colors.accentInk} weight="fill" />
+          <View style={styles.deliveryEstimateText}>
+            <Text style={styles.deliveryEstimateLabel}>Estimated delivery</Text>
+            <Text style={styles.deliveryEstimateValue}>{formatDeliveryWindow(deliveryWindow)}</Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.comingSoon}>
         <Truck size={22} color={colors.accentInk} />
@@ -172,8 +178,14 @@ export default function OrderScreen() {
             </Text>
           </View>
           <View style={styles.row}>
+            <Text style={styles.muted}>Subtotal</Text>
+            <Text style={styles.value}>{formatRupees(subtotal)}</Text>
+          </View>
+          <View style={styles.row}>
             <Text style={styles.muted}>Shipping</Text>
-            <Text style={[styles.value, styles.paid]}>Free</Text>
+            <Text style={[styles.value, order.shipping_fee === 0 && styles.paid]}>
+              {order.shipping_fee === 0 ? 'Free' : formatRupees(order.shipping_fee)}
+            </Text>
           </View>
           <View style={[styles.row, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total</Text>
@@ -205,6 +217,17 @@ const useStyles = makeStyles((c) => ({
   comingSoonText: { flex: 1, gap: 2 },
   comingSoonTitle: { ...typography.bodyMedium, color: c.text },
   comingSoonBody: { ...typography.caption, color: c.textMuted },
+  deliveryEstimate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: radius.lg,
+    backgroundColor: c.accentSoft,
+  },
+  deliveryEstimateText: { gap: 1 },
+  deliveryEstimateLabel: { ...typography.caption, color: c.textMuted },
+  deliveryEstimateValue: { ...typography.bodyMedium, color: c.text },
   itemsList: { gap: 14, marginTop: 14 },
   divider: { height: 1, backgroundColor: c.border },
   itemRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },

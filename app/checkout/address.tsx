@@ -1,5 +1,5 @@
 import { router, Stack } from 'expo-router';
-import { ArrowRight } from '@/components/ui/icons';
+import { ArrowRight, MapPin } from '@/components/ui/icons';
 import { type Control, Controller, useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCheckoutStore } from '@/lib/store/checkout';
-import { makeStyles, typography } from '@/lib/theme';
+import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 import {
   addressLineSchema,
   citySchema,
@@ -40,17 +40,24 @@ function validateWith(schema: {
 
 export default function CheckoutAddressScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const styles = useStyles();
   const profile = useAuthStore((state) => state.profile);
+  const saveDefaultAddress = useAuthStore((state) => state.saveDefaultAddress);
   const draftAddress = useCheckoutStore((state) => state.address);
   const setAddress = useCheckoutStore((state) => state.setAddress);
+
+  // Priority: this session's own in-progress draft (e.g. came back via
+  // "Change"), then whatever they saved on a past order, then just their
+  // name/phone from the profile with a blank address to fill in.
+  const savedAddress = draftAddress ?? profile?.default_address ?? null;
 
   const {
     control,
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>({
-    defaultValues: draftAddress ?? {
+    defaultValues: savedAddress ?? {
       fullName: profile?.full_name ?? '',
       phone: profile?.phone ?? '',
       line1: '',
@@ -62,7 +69,10 @@ export default function CheckoutAddressScreen() {
   });
 
   const onSubmit = handleSubmit((values) => {
-    setAddress({ ...values, line2: values.line2.trim() });
+    const address = { ...values, line2: values.line2.trim() };
+    setAddress(address);
+    // Remembered for next time — doesn't block moving on if it fails.
+    void saveDefaultAddress(address);
     router.push('/checkout/review');
   });
 
@@ -78,6 +88,15 @@ export default function CheckoutAddressScreen() {
           <Text style={styles.title}>Delivery address</Text>
           <Text style={styles.subtitle}>Where should we deliver your tiles?</Text>
         </View>
+
+        {profile?.default_address && !draftAddress && (
+          <View style={styles.savedNote}>
+            <MapPin size={16} color={colors.accentInk} weight="fill" />
+            <Text style={styles.savedNoteText}>
+              Filled in from your saved address — edit anything that&apos;s changed.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.group}>
           <Text style={styles.groupLabel}>Contact</Text>
@@ -205,6 +224,15 @@ const useStyles = makeStyles((c) => ({
   header: { gap: 4 },
   title: { ...typography.h1, color: c.text },
   subtitle: { ...typography.body, color: c.textMuted },
+  savedNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: radius.md,
+    backgroundColor: c.accentSoft,
+  },
+  savedNoteText: { ...typography.caption, color: c.text, flex: 1 },
   group: { gap: 16 },
   groupLabel: { ...typography.h3, color: c.text },
   row: { flexDirection: 'row', gap: 12 },

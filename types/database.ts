@@ -232,30 +232,39 @@ export type Database = {
       orders: {
         Row: {
           created_at: string;
+          estimated_delivery_from: string | null;
+          estimated_delivery_to: string | null;
           id: string;
           payment_id: string | null;
           payment_status: string;
           shipping_address: NonNullable<Json>;
+          shipping_fee: number;
           status: string;
           total_amount: number;
           user_id: string;
         };
         Insert: {
           created_at?: string;
+          estimated_delivery_from?: string | null;
+          estimated_delivery_to?: string | null;
           id?: string;
           payment_id?: string | null;
           payment_status?: string;
           shipping_address: NonNullable<Json>;
+          shipping_fee?: number;
           status?: string;
           total_amount: number;
           user_id: string;
         };
         Update: {
           created_at?: string;
+          estimated_delivery_from?: string | null;
+          estimated_delivery_to?: string | null;
           id?: string;
           payment_id?: string | null;
           payment_status?: string;
           shipping_address?: NonNullable<Json>;
+          shipping_fee?: number;
           status?: string;
           total_amount?: number;
           user_id?: string;
@@ -334,58 +343,82 @@ export type Database = {
           category_id: string | null;
           collection_id: string | null;
           color: string | null;
+          coverage_sqft: number | null;
           created_at: string;
           description: string | null;
           dominant_color_hex: string | null;
           finish: string | null;
+          highlights: string[];
           id: string;
           is_featured: boolean;
           material: string | null;
           mrp: number | null;
           name: string;
+          pei_rating: number | null;
           price: number;
           size: string | null;
           sku: string;
+          slip_rating: string | null;
           slug: string;
           stock_status: string;
+          suitable_for: string[];
+          thickness_mm: number | null;
+          tiles_per_box: number | null;
+          water_absorption: string | null;
         };
         Insert: {
           category_id?: string | null;
           collection_id?: string | null;
           color?: string | null;
+          coverage_sqft?: number | null;
           created_at?: string;
           description?: string | null;
           dominant_color_hex?: string | null;
           finish?: string | null;
+          highlights?: string[];
           id?: string;
           is_featured?: boolean;
           material?: string | null;
           mrp?: number | null;
           name: string;
+          pei_rating?: number | null;
           price: number;
           size?: string | null;
           sku: string;
+          slip_rating?: string | null;
           slug: string;
           stock_status?: string;
+          suitable_for?: string[];
+          thickness_mm?: number | null;
+          tiles_per_box?: number | null;
+          water_absorption?: string | null;
         };
         Update: {
           category_id?: string | null;
           collection_id?: string | null;
           color?: string | null;
+          coverage_sqft?: number | null;
           created_at?: string;
           description?: string | null;
           dominant_color_hex?: string | null;
           finish?: string | null;
+          highlights?: string[];
           id?: string;
           is_featured?: boolean;
           material?: string | null;
           mrp?: number | null;
           name?: string;
+          pei_rating?: number | null;
           price?: number;
           size?: string | null;
           sku?: string;
+          slip_rating?: string | null;
           slug?: string;
           stock_status?: string;
+          suitable_for?: string[];
+          thickness_mm?: number | null;
+          tiles_per_box?: number | null;
+          water_absorption?: string | null;
         };
         Relationships: [
           {
@@ -407,6 +440,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string;
+          default_address: Json | null;
           full_name: string | null;
           id: string;
           phone: string | null;
@@ -414,6 +448,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          default_address?: Json | null;
           full_name?: string | null;
           id: string;
           phone?: string | null;
@@ -421,6 +456,7 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          default_address?: Json | null;
           full_name?: string | null;
           id?: string;
           phone?: string | null;

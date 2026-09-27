@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
-import { CreditCard, Lock, WarningCircle } from '@/components/ui/icons';
+import { CalendarCheck, CreditCard, Lock, WarningCircle } from '@/components/ui/icons';
 import { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
@@ -10,8 +10,10 @@ import { CheckoutSteps } from '@/components/checkout/CheckoutSteps';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatRupees } from '@/components/ui/Price';
+import { estimateDeliveryWindow, formatDeliveryWindow } from '@/lib/delivery';
 import { type CartLineDetail, clearCartItems, getCartLineDetails } from '@/lib/queries/cart';
 import { createOrder } from '@/lib/queries/orders';
+import { estimateShipping } from '@/lib/shipping';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCartStore } from '@/lib/store/cart';
 import { useCheckoutStore } from '@/lib/store/checkout';
@@ -111,6 +113,8 @@ export default function CheckoutPaymentScreen() {
   };
 
   const subtotal = (lines ?? []).reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  const shipping = estimateShipping(subtotal);
+  const total = subtotal + shipping.fee;
 
   const onSubmit = handleSubmit(async () => {
     if (!userId || !address || !lines || lines.length === 0) return;
@@ -121,7 +125,7 @@ export default function CheckoutPaymentScreen() {
       // in for the network round trip a real charge would take.
       await new Promise((resolve) => setTimeout(resolve, 1400));
       const mockPaymentId = `MOCK-${Date.now().toString(36).toUpperCase()}`;
-      const orderId = await createOrder(userId, address, lines, subtotal, mockPaymentId);
+      const orderId = await createOrder(userId, address, lines, total, shipping.fee, mockPaymentId);
 
       clearLocalCart();
       await clearCartItems(userId).catch((error: unknown) =>
@@ -130,6 +134,13 @@ export default function CheckoutPaymentScreen() {
       // Not resetCheckout() here: this screen's own effect could race its
       // "no address -> back to /checkout/address" redirect against this
       // navigation. Confirmation resets it instead, once this screen is covered.
+      //
+      // dismissAll() first: address/review/payment were all pushed onto the
+      // stack, so a plain replace() here would leave them underneath
+      // confirmation — back from "View order" would land back in checkout
+      // instead of on a tab screen. Dismissing back to the tab root before
+      // placing confirmation on top fixes that for every screen reached from here.
+      router.dismissAll();
       router.replace({ pathname: '/checkout/confirmation', params: { orderId } });
     } catch (error) {
       console.warn('Order creation failed', error);
@@ -150,6 +161,13 @@ export default function CheckoutPaymentScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <CheckoutSteps current={2} />
         <Text style={styles.title}>Payment</Text>
+
+        <View style={styles.deliveryEstimate}>
+          <CalendarCheck size={18} color={colors.accentInk} weight="fill" />
+          <Text style={styles.deliveryEstimateText}>
+            Estimated delivery: {formatDeliveryWindow(estimateDeliveryWindow())}
+          </Text>
+        </View>
 
         {/* Live preview of the card being entered. Purely visual. */}
         <LinearGradient
@@ -301,8 +319,22 @@ export default function CheckoutPaymentScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: 12 + insets.bottom }]}>
+        {lines && lines.length > 0 && (
+          <View style={styles.summary}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Subtotal</Text>
+              <Text style={styles.summaryValue}>{formatRupees(subtotal)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Shipping</Text>
+              <Text style={[styles.summaryValue, shipping.isFree && styles.free]}>
+                {shipping.isFree ? 'Free' : formatRupees(shipping.fee)}
+              </Text>
+            </View>
+          </View>
+        )}
         <Button
-          label={lines ? `Pay ${formatRupees(subtotal)}` : 'Pay'}
+          label={lines ? `Pay ${formatRupees(total)}` : 'Pay'}
           onPress={onSubmit}
           loading={processing}
           disabled={!lines || lines.length === 0}
@@ -319,6 +351,16 @@ const useStyles = makeStyles((c) => ({
   container: { flex: 1, backgroundColor: c.bg },
   content: { padding: 16, gap: 20, paddingBottom: 24 },
   title: { ...typography.h1, color: c.text },
+  deliveryEstimate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: radius.lg,
+    backgroundColor: c.accentSoft,
+    marginTop: -6,
+  },
+  deliveryEstimateText: { ...typography.bodyMedium, color: c.text, flex: 1 },
   card: {
     aspectRatio: 1.586,
     borderRadius: radius.xl,
@@ -368,8 +410,14 @@ const useStyles = makeStyles((c) => ({
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,
+    gap: 10,
     backgroundColor: c.surface,
     borderTopWidth: 1,
     borderTopColor: c.border,
   },
+  summary: { gap: 4 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  summaryLabel: { ...typography.body, color: c.textMuted },
+  summaryValue: { ...typography.bodyMedium, color: c.text, fontVariant: ['tabular-nums'] },
+  free: { color: c.success },
 }));

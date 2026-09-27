@@ -2,12 +2,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { isMissingUserError } from '@/lib/errors';
 import {
   getCartItems,
   removeCartItem,
   setCartItemQuantity,
   upsertCartItem,
 } from '@/lib/queries/cart';
+
+// Lazy + dynamic: lib/store/auth.ts imports this store (to clear it on sign
+// out), so a static import back here would be circular. Only reached when a
+// write actually fails with isMissingUserError.
+async function recoverStaleSession() {
+  const { useAuthStore } = await import('@/lib/store/auth');
+  await useAuthStore.getState().signOut();
+}
 
 export type CartItem = {
   productId: string;
@@ -75,6 +84,10 @@ export const useCartStore = create<CartState>()(
         } catch (error) {
           console.warn('Failed to hydrate cart', error);
           set({ hydrated: true });
+          // This session's user_id doesn't exist server-side (e.g. this device
+          // has a leftover local cart from a session that was later pruned) —
+          // pushing it up will never succeed, so start over with a fresh one.
+          if (isMissingUserError(error)) void recoverStaleSession();
         }
       },
 
@@ -94,9 +107,10 @@ export const useCartStore = create<CartState>()(
           set({ items: [...get().items, { productId, variantId, quantity }] });
         }
         if (userId) {
-          upsertCartItem(userId, productId, variantId, quantity).catch((error: unknown) =>
-            console.warn('Failed to sync cart add', error),
-          );
+          upsertCartItem(userId, productId, variantId, quantity).catch((error: unknown) => {
+            console.warn('Failed to sync cart add', error);
+            if (isMissingUserError(error)) void recoverStaleSession();
+          });
         }
       },
 

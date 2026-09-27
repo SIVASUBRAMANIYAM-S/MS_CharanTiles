@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 
+import { isMissingUserError } from '@/lib/errors';
 import { getWishlistProductIds, toggleWishlist as toggleWishlistRow } from '@/lib/queries/wishlist';
+
+// Lazy + dynamic: lib/store/auth.ts imports this store (to clear it on sign
+// out), so a static import back here would be circular. Only reached when a
+// write actually fails with isMissingUserError.
+async function recoverStaleSession() {
+  const { useAuthStore } = await import('@/lib/store/auth');
+  await useAuthStore.getState().signOut();
+}
 
 type WishlistState = {
   productIds: string[];
@@ -46,6 +55,10 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
           ? [...get().productIds, productId]
           : get().productIds.filter((id) => id !== productId),
       });
+      // The session's own user_id no longer exists server-side (e.g. it was
+      // pruned) — every future write would fail the same way, so drop it and
+      // bootstrap a fresh anonymous session rather than leaving the app stuck.
+      if (isMissingUserError(error)) void recoverStaleSession();
     }
   },
 

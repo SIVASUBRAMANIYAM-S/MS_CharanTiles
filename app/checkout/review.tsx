@@ -1,5 +1,5 @@
 import { router, Stack } from 'expo-router';
-import { ArrowRight, MapPin, Truck } from '@/components/ui/icons';
+import { ArrowRight, CalendarCheck, MapPin, Truck } from '@/components/ui/icons';
 import { Fragment, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { formatRupees } from '@/components/ui/Price';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { estimateDeliveryWindow, formatDeliveryWindow } from '@/lib/delivery';
 import { type CartLineDetail, getCartLineDetails } from '@/lib/queries/cart';
+import { estimateShipping } from '@/lib/shipping';
 import { useCartStore } from '@/lib/store/cart';
 import { useCheckoutStore } from '@/lib/store/checkout';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
@@ -51,7 +53,12 @@ export default function CheckoutReviewScreen() {
   }
 
   const subtotal = (lines ?? []).reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  const shipping = estimateShipping(subtotal);
+  const total = subtotal + shipping.fee;
   const hasOutOfStock = (lines ?? []).some((line) => line.stockStatus === 'out_of_stock');
+  // Computed fresh each render (order isn't placed yet), so it always reads
+  // "from today" — the order itself snapshots its own window at checkout.
+  const deliveryWindow = estimateDeliveryWindow();
 
   return (
     <View style={styles.container}>
@@ -85,6 +92,14 @@ export default function CheckoutReviewScreen() {
           <Text style={styles.addressLine}>+91 {address.phone}</Text>
         </Card>
 
+        <View style={styles.deliveryEstimate}>
+          <CalendarCheck size={18} color={colors.accentInk} weight="fill" />
+          <View style={styles.deliveryEstimateText}>
+            <Text style={styles.deliveryEstimateLabel}>Estimated delivery</Text>
+            <Text style={styles.deliveryEstimateValue}>{formatDeliveryWindow(deliveryWindow)}</Text>
+          </View>
+        </View>
+
         <Card>
           <Text style={[styles.cardTitle, styles.itemsTitle]}>
             {lines ? `${lines.length} ${lines.length === 1 ? 'item' : 'items'}` : 'Items'}
@@ -107,7 +122,11 @@ export default function CheckoutReviewScreen() {
 
         <View style={styles.assurance}>
           <Truck size={18} color={colors.accentInk} />
-          <Text style={styles.assuranceText}>Free delivery on this order</Text>
+          <Text style={styles.assuranceText}>
+            {shipping.isFree
+              ? 'Free delivery on this order'
+              : `Add ${formatRupees(shipping.amountToFreeShipping)} more for free delivery`}
+          </Text>
         </View>
 
         {hasOutOfStock && (
@@ -124,11 +143,13 @@ export default function CheckoutReviewScreen() {
         </View>
         <View style={styles.row}>
           <Text style={styles.muted}>Shipping</Text>
-          <Text style={styles.free}>Free</Text>
+          <Text style={[styles.value, shipping.isFree && styles.free]}>
+            {shipping.isFree ? 'Free' : formatRupees(shipping.fee)}
+          </Text>
         </View>
         <View style={[styles.row, styles.totalRow]}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{formatRupees(subtotal)}</Text>
+          <Text style={styles.totalValue}>{formatRupees(total)}</Text>
         </View>
         <Button
           label="Continue to payment"
@@ -162,6 +183,17 @@ const useStyles = makeStyles((c) => ({
   addressName: { ...typography.bodyMedium, color: c.text },
   addressLine: { ...typography.body, color: c.textMuted },
   itemsList: { gap: 16 },
+  deliveryEstimate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: radius.lg,
+    backgroundColor: c.accentSoft,
+  },
+  deliveryEstimateText: { gap: 1 },
+  deliveryEstimateLabel: { ...typography.caption, color: c.textMuted },
+  deliveryEstimateValue: { ...typography.bodyMedium, color: c.text },
   divider: { height: 1, backgroundColor: c.border },
   assurance: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 },
   assuranceText: { ...typography.label, color: c.textMuted },

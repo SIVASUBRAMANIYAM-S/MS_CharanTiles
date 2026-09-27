@@ -67,8 +67,13 @@ function withFilters(query: ReturnType<typeof productsQuery>, filters?: ProductF
   return next.order('is_featured', { ascending: false }).order('created_at', { ascending: false });
 }
 
-export async function getFeaturedProducts(limit = 10): Promise<ProductCardData[]> {
-  const { data, error } = await productsQuery().eq('is_featured', true).limit(limit);
+/** Newest featured tiles first; within a batch, the premium (pricier) ones lead. */
+export async function getFeaturedProducts(limit = 40): Promise<ProductCardData[]> {
+  const { data, error } = await productsQuery()
+    .eq('is_featured', true)
+    .order('created_at', { ascending: false })
+    .order('price', { ascending: false })
+    .limit(limit);
   if (error) throw error;
   return data;
 }

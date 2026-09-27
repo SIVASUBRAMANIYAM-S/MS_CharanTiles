@@ -4,12 +4,14 @@ import { create } from 'zustand';
 import { useCartStore } from '@/lib/store/cart';
 import { useWishlistStore } from '@/lib/store/wishlist';
 import { supabase } from '@/lib/supabase';
+import type { ShippingAddress } from '@/lib/queries/orders';
 
 export type Profile = {
   id: string;
   full_name: string | null;
   phone: string | null;
   role: string;
+  default_address: ShippingAddress | null;
 };
 
 type AuthState = {
@@ -22,6 +24,7 @@ type AuthState = {
   refreshProfile: () => Promise<void>;
   attachPhone: (phone: string) => Promise<void>;
   updateFullName: (name: string) => Promise<void>;
+  saveDefaultAddress: (address: ShippingAddress) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -35,14 +38,16 @@ async function ensureProfile(user: User): Promise<void> {
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, phone, role')
+    .select('id, full_name, phone, role, default_address')
     .eq('id', userId)
     .maybeSingle();
   if (error) {
     console.warn('Failed to load profile for', userId, error);
     return null;
   }
-  return data;
+  // jsonb comes back as `Json`, structurally identical to ShippingAddress here —
+  // this table only ever gets that shape written to it (see saveDefaultAddress).
+  return data as Profile | null;
 }
 
 // Subscribed once, at module scope, so signOut() -> init() re-bootstrapping a
@@ -128,6 +133,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await get().refreshProfile();
   },
 
+  // Remembers this address for next time (checkout/address.tsx pre-fills from
+  // it). Fire-and-forget from the caller's point of view — a failure here
+  // shouldn't block checkout, since the order itself doesn't depend on it.
+  saveDefaultAddress: async (address) => {
+    const userId = get().user?.id;
+    if (!userId) return;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ default_address: address })
+      .eq('id', userId);
+    if (error) {
+      console.warn('Failed to save default address', error);
+      return;
+    }
+    set((state) =>
+      state.profile ? { profile: { ...state.profile, default_address: address } } : {},
+    );
+  },
+
   // Destroys the anonymous session entirely, so its cart/wishlist (scoped to
   // that user_id) are cleared locally too, then bootstraps a brand new
   // anonymous session with its own fresh profiles row. This POC has no
@@ -140,6 +164,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // init() doesn't need loading:true to re-run — its early-return guard checks
   // `session`, which is already cleared below.
   signOut: async () => {
+    // profiles.phone is unique, and this POC has no way to sign back into an
+    // abandoned anonymous session by phone — so without this, the number
+    // stays stuck on the old (now unreachable) account and can never be
+    // attached again, even by the same person re-entering it right after.
+    const outgoingUserId = get().user?.id;
+    if (outgoingUserId) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ phone: null })
+        .eq('id', outgoingUserId);
+      if (error) console.warn('Failed to release phone number before sign-out', error);
+    }
     await supabase.auth.signOut();
     useCartStore.getState().clear();
     useWishlistStore.getState().reset();

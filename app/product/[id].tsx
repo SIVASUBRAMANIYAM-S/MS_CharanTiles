@@ -14,13 +14,21 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AddToCartControl } from '@/components/catalog/AddToCartControl';
+import { CartHeaderButton } from '@/components/catalog/CartHeaderButton';
 import { ProductGrid } from '@/components/catalog/ProductGrid';
+import {
+  Highlights,
+  QuickFacts,
+  SpecTable,
+  SuitableForList,
+} from '@/components/catalog/ProductSpecs';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconButton } from '@/components/ui/IconButton';
-import { Price } from '@/components/ui/Price';
+import { formatRupees, Price } from '@/components/ui/Price';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
@@ -29,8 +37,9 @@ import {
   type ProductCardData,
   type ProductWithDetails,
 } from '@/lib/queries/products';
+import { capitalize, formatSize } from '@/lib/specs';
+import { FREE_SHIPPING_THRESHOLD } from '@/lib/shipping';
 import { useAuthStore } from '@/lib/store/auth';
-import { useCartStore } from '@/lib/store/cart';
 import { useWishlistStore } from '@/lib/store/wishlist';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
@@ -51,7 +60,6 @@ export default function ProductScreen() {
   const userId = useAuthStore((state) => state.user?.id);
   const isWishlisted = useWishlistStore((state) => state.isWishlisted(product?.id ?? ''));
   const toggleWishlist = useWishlistStore((state) => state.toggle);
-  const addToCart = useCartStore((state) => state.addItem);
 
   useEffect(() => {
     if (!id) return;
@@ -90,9 +98,7 @@ export default function ProductScreen() {
     setImageIndex(Math.round(event.nativeEvent.contentOffset.x / width));
   };
 
-  const handleAddToCart = () => {
-    if (!product) return;
-    addToCart(userId, product.id, selectedVariantId);
+  const handleAdded = () => {
     setAddedMessage(true);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setAddedMessage(false), 2600);
@@ -126,17 +132,13 @@ export default function ProductScreen() {
   }
 
   const displayPrice = selectedVariant?.price ?? product.price;
-  const specs = [
-    { label: 'Size', value: selectedVariant?.size ?? product.size },
-    { label: 'Finish', value: selectedVariant?.finish ?? product.finish },
-    { label: 'Material', value: product.material },
-    { label: 'Color', value: product.color },
-  ].filter((spec): spec is { label: string; value: string } => Boolean(spec.value));
+  const displaySize = selectedVariant?.size ?? product.size;
+  const displayFinish = selectedVariant?.finish ?? product.finish;
   const outOfStock = product.stock_status === 'out_of_stock';
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: product.name }} />
+      <Stack.Screen options={{ title: product.name, headerRight: () => <CartHeaderButton /> }} />
       <ScrollView contentContainerStyle={{ paddingBottom: 110 + insets.bottom }}>
         <View style={{ height: galleryHeight }}>
           <ScrollView
@@ -198,6 +200,8 @@ export default function ProductScreen() {
             <Price price={displayPrice} mrp={product.mrp} size="lg" />
           </View>
 
+          <Highlights items={product.highlights} />
+
           {product.product_variants.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Choose a variant</Text>
@@ -205,7 +209,9 @@ export default function ProductScreen() {
                 {product.product_variants.map((variant) => (
                   <Chip
                     key={variant.id}
-                    label={[variant.size, variant.finish].filter(Boolean).join(' · ')}
+                    label={[formatSize(variant.size), capitalize(variant.finish)]
+                      .filter(Boolean)
+                      .join(' · ')}
                     selected={selectedVariantId === variant.id}
                     onPress={() =>
                       setSelectedVariantId((current) =>
@@ -218,14 +224,14 @@ export default function ProductScreen() {
             </View>
           )}
 
-          <View style={styles.specGrid}>
-            {specs.map((spec) => (
-              <View key={spec.label} style={styles.specTile}>
-                <Text style={styles.specLabel}>{spec.label}</Text>
-                <Text style={styles.specValue}>{spec.value}</Text>
-              </View>
-            ))}
-          </View>
+          <QuickFacts product={product} size={displaySize} />
+
+          {product.suitable_for.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Suitable for</Text>
+              <SuitableForList values={product.suitable_for} />
+            </View>
+          )}
 
           {product.description && (
             <View style={styles.section}>
@@ -234,9 +240,16 @@ export default function ProductScreen() {
             </View>
           )}
 
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Specifications</Text>
+            <SpecTable product={product} size={displaySize} finish={displayFinish} />
+          </View>
+
           <View style={styles.assurance}>
             <Truck size={20} color={colors.accentInk} />
-            <Text style={styles.assuranceText}>Free delivery on every order</Text>
+            <Text style={styles.assuranceText}>
+              Free delivery on orders over {formatRupees(FREE_SHIPPING_THRESHOLD)}
+            </Text>
           </View>
 
           {related && related.length > 0 && (
@@ -273,12 +286,12 @@ export default function ProductScreen() {
           />
         </View>
         <View style={styles.actionPrimary}>
-          <Button
-            label="Add to cart"
-            onPress={handleAddToCart}
-            fullWidth
+          <AddToCartControl
+            userId={userId}
+            productId={product.id}
+            variantId={selectedVariantId}
             disabled={outOfStock}
-            icon={(color) => <ShoppingBag size={18} color={color} weight="bold" />}
+            onAdd={handleAdded}
           />
         </View>
       </View>
@@ -314,18 +327,6 @@ const useStyles = makeStyles((c) => ({
   section: { gap: 12 },
   sectionLabel: { ...typography.label, color: c.textMuted },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  specGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
-  specTile: {
-    width: '48.5%',
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: radius.md,
-    padding: 14,
-    gap: 4,
-  },
-  specLabel: { ...typography.caption, color: c.textMuted },
-  specValue: { ...typography.bodyMedium, color: c.text, textTransform: 'capitalize' },
   description: { ...typography.body, color: c.text, lineHeight: 24 },
   assurance: {
     flexDirection: 'row',

@@ -25,7 +25,11 @@ export function ProductGrid({
   const { colors } = useTheme();
   const styles = useStyles();
   const userId = useAuthStore((state) => state.user?.id);
-  const isWishlisted = useWishlistStore((state) => state.isWishlisted);
+  // Subscribe to the productIds array itself, not the isWishlisted *function* —
+  // that function reference never changes, so selecting it never re-renders
+  // this list when the wishlist actually changes (the heart just wouldn't
+  // visually flip here, even though the toggle still wrote through).
+  const wishlistIds = useWishlistStore((state) => state.productIds);
   const toggleWishlist = useWishlistStore((state) => state.toggle);
 
   if (products === null) {
@@ -57,7 +61,7 @@ export function ProductGrid({
           <ProductCard
             product={product}
             onPress={() => router.push(`/product/${product.id}`)}
-            wishlisted={isWishlisted(product.id)}
+            wishlisted={wishlistIds.includes(product.id)}
             onToggleWishlist={userId ? () => toggleWishlist(userId, product.id) : undefined}
           />
         </View>

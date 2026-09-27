@@ -195,32 +195,35 @@ export default function ProfileScreen() {
           ))}
         </Card>
 
-        {!confirmingSignOut ? (
-          <Button
-            label="Sign out"
-            variant="outline"
-            onPress={() => setConfirmingSignOut(true)}
-            fullWidth
-            icon={(color) => <SignOut size={18} color={color} />}
-          />
-        ) : (
-          <View style={styles.confirm}>
-            <Text style={styles.confirmTitle}>Sign out?</Text>
-            <Text style={styles.confirmText}>
-              Your current cart and wishlist belong to this session and can&apos;t be recovered
-              after signing out.
-            </Text>
-            <View style={styles.confirmRow}>
-              <Button
-                label="Cancel"
-                variant="secondary"
-                onPress={() => setConfirmingSignOut(false)}
-                disabled={signingOut}
-              />
-              <Button label="Sign out" onPress={handleSignOut} loading={signingOut} />
+        {/* A guest has no attached identity to sign out of — showing this
+            button regardless of state read as "signing out did nothing". */}
+        {profile.phone &&
+          (!confirmingSignOut ? (
+            <Button
+              label="Sign out"
+              variant="outline"
+              onPress={() => setConfirmingSignOut(true)}
+              fullWidth
+              icon={(color) => <SignOut size={18} color={color} />}
+            />
+          ) : (
+            <View style={styles.confirm}>
+              <Text style={styles.confirmTitle}>Sign out?</Text>
+              <Text style={styles.confirmText}>
+                Your current cart and wishlist belong to this session and can&apos;t be recovered
+                after signing out.
+              </Text>
+              <View style={styles.confirmRow}>
+                <Button
+                  label="Cancel"
+                  variant="secondary"
+                  onPress={() => setConfirmingSignOut(false)}
+                  disabled={signingOut}
+                />
+                <Button label="Sign out" onPress={handleSignOut} loading={signingOut} />
+              </View>
             </View>
-          </View>
-        )}
+          ))}
 
         <Text style={styles.footnote}>
           Appearance follows your phone&apos;s light or dark setting.

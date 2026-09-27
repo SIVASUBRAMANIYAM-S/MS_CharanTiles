@@ -1,3 +1,4 @@
+import { estimateDeliveryWindow, toDateOnly } from '@/lib/delivery';
 import { supabase } from '@/lib/supabase';
 import type { CartLineDetail } from '@/lib/queries/cart';
 import type { Tables } from '@/types/database';
@@ -24,6 +25,25 @@ export type OrderWithItems = Order & {
   })[];
 };
 
+/** orders.shipping_address is jsonb (typed `Json`, not `ShippingAddress`) —
+ * this narrows it defensively rather than casting, in case a row somehow
+ * predates the shape or has a gap in it. */
+export function readShippingAddress(order: Order): ShippingAddress | null {
+  const raw = order.shipping_address;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const address = raw as Record<string, unknown>;
+  if (typeof address.fullName !== 'string' || typeof address.line1 !== 'string') return null;
+  return {
+    fullName: address.fullName,
+    phone: typeof address.phone === 'string' ? address.phone : '',
+    line1: address.line1,
+    line2: typeof address.line2 === 'string' ? address.line2 : '',
+    city: typeof address.city === 'string' ? address.city : '',
+    state: typeof address.state === 'string' ? address.state : '',
+    pincode: typeof address.pincode === 'string' ? address.pincode : '',
+  };
+}
+
 /**
  * Writes the order, then its line items. Mock payment only — see Phase 6 notes:
  * no real payment gateway, this always represents a "successful" charge.
@@ -33,8 +53,10 @@ export async function createOrder(
   address: ShippingAddress,
   lines: CartLineDetail[],
   totalAmount: number,
+  shippingFee: number,
   mockPaymentId: string,
 ): Promise<string> {
+  const deliveryWindow = estimateDeliveryWindow();
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
@@ -43,7 +65,10 @@ export async function createOrder(
       payment_status: 'paid',
       payment_id: mockPaymentId,
       total_amount: totalAmount,
+      shipping_fee: shippingFee,
       shipping_address: address,
+      estimated_delivery_from: toDateOnly(deliveryWindow.from),
+      estimated_delivery_to: toDateOnly(deliveryWindow.to),
     })
     .select('id')
     .single();

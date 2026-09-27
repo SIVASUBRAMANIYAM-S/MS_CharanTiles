@@ -5,6 +5,7 @@ import { SquaresFour } from '@/components/ui/icons';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
+import { CartHeaderButton } from '@/components/catalog/CartHeaderButton';
 import { FilterSheet, type FilterSheetHandle } from '@/components/catalog/FilterSheet';
 import { ProductGrid } from '@/components/catalog/ProductGrid';
 import { SortFilterBar } from '@/components/catalog/SortFilterBar';
@@ -77,7 +78,9 @@ export default function CollectionScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: collection?.name ?? '' }} />
+      <Stack.Screen
+        options={{ title: collection?.name ?? '', headerRight: () => <CartHeaderButton /> }}
+      />
       <ScrollView contentContainerStyle={styles.content} stickyHeaderIndices={[1]}>
         <View style={styles.heroWrap}>
           {collection ? (

@@ -10,6 +10,7 @@ import { formatRupees } from '@/components/ui/Price';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { type CartLineDetail, getCartLineDetails } from '@/lib/queries/cart';
+import { estimateShipping } from '@/lib/shipping';
 import { useAuthStore } from '@/lib/store/auth';
 import { useCartStore } from '@/lib/store/cart';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
@@ -39,6 +40,8 @@ export default function CartScreen() {
 
   const loading = !cartHydrated || lines === null;
   const subtotal = (lines ?? []).reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  const shipping = estimateShipping(subtotal);
+  const total = subtotal + shipping.fee;
   const hasOutOfStock = (lines ?? []).some((line) => line.stockStatus === 'out_of_stock');
 
   if (!loading && lines?.length === 0) {
@@ -93,17 +96,24 @@ export default function CartScreen() {
               Remove out-of-stock items before checking out.
             </Text>
           )}
+          {!shipping.isFree && (
+            <Text style={styles.nudge}>
+              Add {formatRupees(shipping.amountToFreeShipping)} more for free delivery
+            </Text>
+          )}
           <View style={styles.row}>
             <Text style={styles.muted}>Subtotal</Text>
             <Text style={styles.value}>{formatRupees(subtotal)}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.muted}>Shipping</Text>
-            <Text style={styles.free}>Free</Text>
+            <Text style={[styles.value, shipping.isFree && styles.free]}>
+              {shipping.isFree ? 'Free' : formatRupees(shipping.fee)}
+            </Text>
           </View>
           <View style={[styles.row, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>{formatRupees(subtotal)}</Text>
+            <Text style={styles.totalValue}>{formatRupees(total)}</Text>
           </View>
           <Button
             label="Proceed to checkout"
@@ -134,6 +144,7 @@ const useStyles = makeStyles((c) => ({
     borderTopRightRadius: radius.xl,
   },
   outOfStockNote: { ...typography.caption, color: c.error },
+  nudge: { ...typography.caption, color: c.accentInk },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   muted: { ...typography.body, color: c.textMuted },
   value: { ...typography.bodyMedium, color: c.text, fontVariant: ['tabular-nums'] },
