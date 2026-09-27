@@ -236,6 +236,7 @@ export type Database = {
           payment_id: string | null;
           payment_status: string;
           shipping_address: NonNullable<Json>;
+          shipping_fee: number;
           status: string;
           total_amount: number;
           user_id: string;
@@ -246,6 +247,7 @@ export type Database = {
           payment_id?: string | null;
           payment_status?: string;
           shipping_address: NonNullable<Json>;
+          shipping_fee?: number;
           status?: string;
           total_amount: number;
           user_id: string;
@@ -256,6 +258,7 @@ export type Database = {
           payment_id?: string | null;
           payment_status?: string;
           shipping_address?: NonNullable<Json>;
+          shipping_fee?: number;
           status?: string;
           total_amount?: number;
           user_id?: string;

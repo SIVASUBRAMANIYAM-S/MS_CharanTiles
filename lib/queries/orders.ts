@@ -33,6 +33,7 @@ export async function createOrder(
   address: ShippingAddress,
   lines: CartLineDetail[],
   totalAmount: number,
+  shippingFee: number,
   mockPaymentId: string,
 ): Promise<string> {
   const { data: order, error: orderError } = await supabase
@@ -43,6 +44,7 @@ export async function createOrder(
       payment_status: 'paid',
       payment_id: mockPaymentId,
       total_amount: totalAmount,
+      shipping_fee: shippingFee,
       shipping_address: address,
     })
     .select('id')

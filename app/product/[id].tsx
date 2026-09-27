@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconButton } from '@/components/ui/IconButton';
-import { Price } from '@/components/ui/Price';
+import { formatRupees, Price } from '@/components/ui/Price';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
@@ -38,6 +38,7 @@ import {
   type ProductWithDetails,
 } from '@/lib/queries/products';
 import { capitalize, formatSize } from '@/lib/specs';
+import { FREE_SHIPPING_THRESHOLD } from '@/lib/shipping';
 import { useAuthStore } from '@/lib/store/auth';
 import { useWishlistStore } from '@/lib/store/wishlist';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
@@ -246,7 +247,9 @@ export default function ProductScreen() {
 
           <View style={styles.assurance}>
             <Truck size={20} color={colors.accentInk} />
-            <Text style={styles.assuranceText}>Free delivery on every order</Text>
+            <Text style={styles.assuranceText}>
+              Free delivery on orders over {formatRupees(FREE_SHIPPING_THRESHOLD)}
+            </Text>
           </View>
 
           {related && related.length > 0 && (

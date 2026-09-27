@@ -77,6 +77,10 @@ export default function OrderScreen() {
 
   const address = readShippingAddress(order);
   const orderNumber = order.id.slice(0, 8).toUpperCase();
+  const subtotal = order.order_items.reduce(
+    (sum, item) => sum + item.price_at_purchase * item.quantity,
+    0,
+  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -172,8 +176,14 @@ export default function OrderScreen() {
             </Text>
           </View>
           <View style={styles.row}>
+            <Text style={styles.muted}>Subtotal</Text>
+            <Text style={styles.value}>{formatRupees(subtotal)}</Text>
+          </View>
+          <View style={styles.row}>
             <Text style={styles.muted}>Shipping</Text>
-            <Text style={[styles.value, styles.paid]}>Free</Text>
+            <Text style={[styles.value, order.shipping_fee === 0 && styles.paid]}>
+              {order.shipping_fee === 0 ? 'Free' : formatRupees(order.shipping_fee)}
+            </Text>
           </View>
           <View style={[styles.row, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total</Text>

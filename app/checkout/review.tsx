@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { formatRupees } from '@/components/ui/Price';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { type CartLineDetail, getCartLineDetails } from '@/lib/queries/cart';
+import { estimateShipping } from '@/lib/shipping';
 import { useCartStore } from '@/lib/store/cart';
 import { useCheckoutStore } from '@/lib/store/checkout';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
@@ -51,6 +52,8 @@ export default function CheckoutReviewScreen() {
   }
 
   const subtotal = (lines ?? []).reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  const shipping = estimateShipping(subtotal);
+  const total = subtotal + shipping.fee;
   const hasOutOfStock = (lines ?? []).some((line) => line.stockStatus === 'out_of_stock');
 
   return (
@@ -107,7 +110,11 @@ export default function CheckoutReviewScreen() {
 
         <View style={styles.assurance}>
           <Truck size={18} color={colors.accentInk} />
-          <Text style={styles.assuranceText}>Free delivery on this order</Text>
+          <Text style={styles.assuranceText}>
+            {shipping.isFree
+              ? 'Free delivery on this order'
+              : `Add ${formatRupees(shipping.amountToFreeShipping)} more for free delivery`}
+          </Text>
         </View>
 
         {hasOutOfStock && (
@@ -124,11 +131,13 @@ export default function CheckoutReviewScreen() {
         </View>
         <View style={styles.row}>
           <Text style={styles.muted}>Shipping</Text>
-          <Text style={styles.free}>Free</Text>
+          <Text style={[styles.value, shipping.isFree && styles.free]}>
+            {shipping.isFree ? 'Free' : formatRupees(shipping.fee)}
+          </Text>
         </View>
         <View style={[styles.row, styles.totalRow]}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{formatRupees(subtotal)}</Text>
+          <Text style={styles.totalValue}>{formatRupees(total)}</Text>
         </View>
         <Button
           label="Continue to payment"
