@@ -20,6 +20,16 @@ export function sizedImageUrl<T extends string | null | undefined>(
   if (!base) return url;
   const scale = Math.min(PixelRatio.get(), 3);
   const width = Math.min(Math.ceil((displayWidth * scale) / 100) * 100, MAX_WIDTH);
+  // Carries over an editorial focal-point crop from the source URL (e.g. to
+  // frame a specific corner of a photo) — otherwise it'd be silently dropped
+  // and Unsplash would fall back to its own auto-centered crop.
+  const queryStart = url.indexOf('?');
+  const cropParams = queryStart === -1 ? '' : url.slice(queryStart);
+  const focalPointParams = new URLSearchParams(cropParams);
+  const preserved = ['crop', 'fp-x', 'fp-y', 'fp-z']
+    .filter((key) => focalPointParams.has(key))
+    .map((key) => `&${key}=${focalPointParams.get(key)}`)
+    .join('');
   // WebP explicitly: native clients don't advertise it, so auto=format would still send JPEG.
-  return `${base}?w=${width}&q=70&fm=webp&fit=crop` as T;
+  return `${base}?w=${width}&q=70&fm=webp&fit=crop${preserved}` as T;
 }
