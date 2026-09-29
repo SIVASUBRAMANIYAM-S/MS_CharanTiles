@@ -1,10 +1,13 @@
 // Generates app icon, Android adaptive icon, favicon and native splash image
-// from assets/brand/mscharan-logo-source.png. Run with: npm run icons
+// from assets/brand/charan-tiles-logo-source.png. Run with: npm run icons
 //
-// The source logo is blue on transparent, which disappears on our blue/navy
-// backgrounds, so every output uses a white-recolored copy (alpha preserved).
-// To swap in a higher-resolution logo or an icon-only mark, replace the source
-// file and re-run — nothing else needs to change.
+// The source logo is white on transparent (it was extracted from the client's
+// "Charan Tiles" reference artwork, which had a solid background — see
+// assets/brand/charan-tiles-logo-reference.jpeg for the original), which
+// disappears on white/light backgrounds, so every output uses a
+// white-recolored copy (alpha preserved). To swap in a higher-resolution logo
+// or an icon-only mark, replace the source file and re-run — nothing else
+// needs to change.
 import path from 'node:path';
 
 import sharp, { type Sharp } from 'sharp';
@@ -12,7 +15,7 @@ import sharp, { type Sharp } from 'sharp';
 import { brand } from '../lib/theme/colors';
 
 const root = path.join(__dirname, '..');
-const sourcePath = path.join(root, 'assets/brand/mscharan-logo-source.png');
+const sourcePath = path.join(root, 'assets/brand/charan-tiles-logo-source.png');
 const outDir = path.join(root, 'assets/images');
 
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };

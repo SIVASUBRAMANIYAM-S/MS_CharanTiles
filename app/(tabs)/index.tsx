@@ -71,7 +71,7 @@ export default function HomeScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
         <View>
-          <Text style={styles.brand}>MS Charan</Text>
+          <Text style={styles.brand}>Charan Tiles</Text>
           <Text style={styles.brandSub}>Tiles and surfaces</Text>
         </View>
         <IconButton accessibilityLabel="Search tiles" onPress={() => router.push('/search')}>
