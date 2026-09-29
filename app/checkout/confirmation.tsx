@@ -176,7 +176,13 @@ export default function CheckoutConfirmationScreen() {
       <View style={[styles.actions, { paddingBottom: 12 + insets.bottom }]}>
         <Button
           label="View order"
-          onPress={() => order && router.replace(`/order/${order.id}`)}
+          onPress={() => {
+            if (!order) return;
+            // Leaves [tabs, Order history, this order], so back walks out
+            // naturally instead of returning to this confirmation.
+            router.replace('/order');
+            router.push(`/order/${order.id}`);
+          }}
           disabled={!order}
           fullWidth
           size="lg"
@@ -185,7 +191,7 @@ export default function CheckoutConfirmationScreen() {
         <Button
           label="Continue shopping"
           variant="outline"
-          onPress={() => router.replace('/catalog')}
+          onPress={() => router.dismissTo('/catalog')}
           fullWidth
           size="lg"
         />

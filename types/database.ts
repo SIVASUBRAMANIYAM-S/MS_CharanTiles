@@ -495,7 +495,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      sign_in_with_phone: {
+        Args: { p_phone: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;

@@ -51,7 +51,12 @@ export default function VerifyOtpScreen() {
       router.replace((redirect as Href | undefined) ?? '/(tabs)/profile');
     } catch (error) {
       console.warn('Failed to attach phone', error);
-      setSubmitError('We could not save this number. It may already be in use on another account.');
+      const inUse = (error as { code?: string } | null)?.code === '23505';
+      setSubmitError(
+        inUse
+          ? 'This number is linked to another account. Please try again shortly.'
+          : 'We could not sign you in. Check your connection and try again.',
+      );
     }
   });
 

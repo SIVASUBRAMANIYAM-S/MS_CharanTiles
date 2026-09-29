@@ -76,7 +76,12 @@ export default function CategoryScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen
-        options={{ title: category?.name ?? '', headerRight: () => <CartHeaderButton /> }}
+        options={{
+          title: category?.name ?? '',
+          // The page shows its own large title; repeating it in the bar read twice.
+          headerTitle: '',
+          headerRight: () => <CartHeaderButton />,
+        }}
       />
       <ScrollView contentContainerStyle={styles.content} stickyHeaderIndices={[1]}>
         <View style={styles.header}>

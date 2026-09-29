@@ -7,10 +7,12 @@ import { ScrollView, Text, View } from 'react-native';
 import { OrderStatusStepper } from '@/components/checkout/OrderStatusStepper';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useFallbackHeaderLeft } from '@/components/ui/FallbackBack';
 import { formatRupees } from '@/components/ui/Price';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatDeliveryWindow, parseDateOnly } from '@/lib/delivery';
 import { getOrderById, readShippingAddress, type OrderWithItems } from '@/lib/queries/orders';
+import { sizedImageUrl } from '@/lib/image';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 const dateFormat = new Intl.DateTimeFormat('en-IN', {
@@ -23,6 +25,7 @@ export default function OrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const styles = useStyles();
+  const headerLeft = useFallbackHeaderLeft('/order');
   const [order, setOrder] = useState<OrderWithItems | null | undefined>(undefined);
 
   useEffect(() => {
@@ -38,6 +41,7 @@ export default function OrderScreen() {
   if (order === null) {
     return (
       <View style={styles.container}>
+        <Stack.Screen options={{ headerLeft }} />
         <EmptyState
           icon={<Receipt size={30} color={colors.accentInk} />}
           title="Order not found"
@@ -51,6 +55,7 @@ export default function OrderScreen() {
   if (order === undefined) {
     return (
       <View style={styles.container}>
+        <Stack.Screen options={{ headerLeft }} />
         <View style={styles.content}>
           <Skeleton width="60%" height={30} />
           <Skeleton width="100%" height={110} borderRadius={radius.lg} />
@@ -76,7 +81,7 @@ export default function OrderScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: `Order #${orderNumber}` }} />
+      <Stack.Screen options={{ title: `Order #${orderNumber}`, headerLeft }} />
 
       <View style={styles.header}>
         <Text style={styles.title}>Order #{orderNumber}</Text>
@@ -128,7 +133,11 @@ export default function OrderScreen() {
                 <View style={styles.itemRow}>
                   <View style={styles.itemImage}>
                     {image ? (
-                      <Image source={{ uri: image.url }} style={styles.fill} contentFit="cover" />
+                      <Image
+                        source={{ uri: sizedImageUrl(image.url, 64) }}
+                        style={styles.fill}
+                        contentFit="cover"
+                      />
                     ) : null}
                   </View>
                   <View style={styles.itemDetails}>

@@ -2,7 +2,7 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'MS Charan Tiles',
+  name: 'Charan Tiles',
   slug: 'mscharantiles',
   owner: 'sivasaravanan4920',
   version: '1.0.0',
@@ -51,8 +51,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-image-picker',
       {
-        photosPermission: 'Allow MS Charan Tiles to access your photos to find a matching tile.',
-        cameraPermission: 'Allow MS Charan Tiles to use your camera to find a matching tile.',
+        photosPermission: 'Allow Charan Tiles to access your photos to find a matching tile.',
+        cameraPermission: 'Allow Charan Tiles to use your camera to find a matching tile.',
       },
     ],
   ],

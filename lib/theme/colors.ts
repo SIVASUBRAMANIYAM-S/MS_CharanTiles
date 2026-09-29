@@ -1,5 +1,5 @@
-// "Dark luxury showroom" design language: charcoal + off-white + the MS Charan
-// brand gold as the single accent. The light palette is the same language on a
+// "Dark luxury showroom" design language: charcoal + off-white + the Charan
+// Tiles brand gold as the single accent. The light palette is the same language on a
 // cool neutral ground, so both modes read as one brand. Both palettes share
 // every key; components only ever read semantic tokens, never raw hex.
 

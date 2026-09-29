@@ -18,6 +18,7 @@ import {
   type ProductCardData,
   type ProductFilters,
 } from '@/lib/queries/products';
+import { sizedImageUrl } from '@/lib/image';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 export default function CollectionScreen() {
@@ -79,7 +80,12 @@ export default function CollectionScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen
-        options={{ title: collection?.name ?? '', headerRight: () => <CartHeaderButton /> }}
+        options={{
+          title: collection?.name ?? '',
+          // The hero shows the name; repeating it in the bar read twice.
+          headerTitle: '',
+          headerRight: () => <CartHeaderButton />,
+        }}
       />
       <ScrollView contentContainerStyle={styles.content} stickyHeaderIndices={[1]}>
         <View style={styles.heroWrap}>
@@ -87,7 +93,7 @@ export default function CollectionScreen() {
             <View style={styles.hero}>
               {collection.hero_image_url ? (
                 <Image
-                  source={{ uri: collection.hero_image_url }}
+                  source={{ uri: sizedImageUrl(collection.hero_image_url, 430) }}
                   style={styles.fill}
                   contentFit="cover"
                   transition={250}

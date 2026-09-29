@@ -1,4 +1,4 @@
-# MS Charan Tiles
+# Charan Tiles
 
 Cross-platform tile catalog + e-commerce POC built with Expo SDK 57, React Native 0.86, Expo Router and Supabase.
 

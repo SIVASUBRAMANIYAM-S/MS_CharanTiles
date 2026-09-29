@@ -23,7 +23,12 @@ export default function FeaturedScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Stack.Screen
-        options={{ title: 'Featured tiles', headerRight: () => <CartHeaderButton /> }}
+        options={{
+          title: 'Featured tiles',
+          // The page shows its own large title; repeating it in the bar read twice.
+          headerTitle: '',
+          headerRight: () => <CartHeaderButton />,
+        }}
       />
       <View style={styles.intro}>
         <Text style={styles.title}>Featured tiles</Text>

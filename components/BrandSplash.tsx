@@ -26,7 +26,7 @@ export function BrandSplash() {
           source={require('@/assets/images/splash-icon.png')}
           style={styles.logo}
           contentFit="contain"
-          accessibilityLabel="MS Charan Tiles"
+          accessibilityLabel="Charan Tiles"
         />
       </MotiView>
       <MotiView
