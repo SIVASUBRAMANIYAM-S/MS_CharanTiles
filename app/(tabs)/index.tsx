@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/Card';
 import { IconButton } from '@/components/ui/IconButton';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { type Category, getCategories } from '@/lib/queries/categories';
+import { type Category, getCategories, sortCategoriesForHome } from '@/lib/queries/categories';
 import { type Collection, getCollections } from '@/lib/queries/collections';
 import { getFeaturedProducts, type ProductCardData } from '@/lib/queries/products';
 import { useAuthStore } from '@/lib/store/auth';
@@ -45,7 +45,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     getCategories()
-      .then(setCategories)
+      .then((data) => setCategories(sortCategoriesForHome(data)))
       .catch((error: unknown) => {
         console.warn('Failed to load categories', error);
         setCategories([]);
