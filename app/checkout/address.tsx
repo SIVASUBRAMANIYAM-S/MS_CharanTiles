@@ -14,6 +14,7 @@ import {
   addressLineSchema,
   citySchema,
   fullNameSchema,
+  normalizePhoneInput,
   phoneSchema,
   pincodeSchema,
   stateSchema,
@@ -112,8 +113,8 @@ export default function CheckoutAddressScreen() {
             control={control}
             name="phone"
             label="Phone number"
-            keyboardType="phone-pad"
-            maxLength={10}
+            keyboardType="number-pad"
+            format={normalizePhoneInput}
             error={errors.phone?.message}
             validate={validateWith(phoneSchema)}
             autoComplete="tel"
@@ -186,6 +187,7 @@ function Field({
   validate,
   keyboardType,
   maxLength,
+  format,
   autoComplete,
 }: {
   control: Control<FormValues>;
@@ -195,6 +197,8 @@ function Field({
   validate?: (value: string) => true | string;
   keyboardType?: 'phone-pad' | 'number-pad';
   maxLength?: number;
+  /** Cleans each change before it reaches the form value. */
+  format?: (text: string) => string;
   autoComplete?: 'name' | 'tel' | 'street-address' | 'postal-code';
 }) {
   return (
@@ -206,7 +210,7 @@ function Field({
         <Input
           label={label}
           value={value}
-          onChangeText={onChange}
+          onChangeText={format ? (text) => onChange(format(text)) : onChange}
           onBlur={onBlur}
           error={error}
           keyboardType={keyboardType}

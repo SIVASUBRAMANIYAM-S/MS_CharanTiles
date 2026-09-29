@@ -6,6 +6,7 @@ import { ArrowRight, Check, Heart } from '@/components/ui/icons';
 import { IconButton } from '@/components/ui/IconButton';
 import { Price } from '@/components/ui/Price';
 import type { ProductCardData } from '@/lib/queries/products';
+import { sizedImageUrl } from '@/lib/image';
 import { capitalize, formatSize } from '@/lib/specs';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
@@ -43,7 +44,7 @@ export function FeaturedSpotlight({
         <View style={styles.imageWrap}>
           {image ? (
             <Image
-              source={{ uri: image.url }}
+              source={{ uri: sizedImageUrl(image.url, 430) }}
               style={styles.image}
               contentFit="cover"
               transition={250}

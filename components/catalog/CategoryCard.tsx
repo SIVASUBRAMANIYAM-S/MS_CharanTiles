@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowRight } from '@/components/ui/icons';
 import { Pressable, Text, View } from 'react-native';
 
+import { sizedImageUrl } from '@/lib/image';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 type CategoryCardProps = {
@@ -29,7 +30,7 @@ export function CategoryCard({ name, imageUrl, onPress, size = 'sm' }: CategoryC
     >
       {imageUrl ? (
         <Image
-          source={{ uri: imageUrl }}
+          source={{ uri: sizedImageUrl(imageUrl, size === 'sm' ? 160 : 430) }}
           style={styles.fill}
           contentFit="cover"
           transition={200}

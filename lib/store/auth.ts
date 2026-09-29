@@ -114,15 +114,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ profile });
   },
 
-  // Writes the phone straight to the profiles row of the *current* session —
-  // this is identity attachment, not sign-in. See Phase 5 notes: no OTP is
-  // actually sent, and supabase.auth.signInWithOtp/updateUser are never used.
+  // "Sign in": claims the phone for the *current* (anonymous) session. If
+  // another account already holds the number, the server moves that account's
+  // orders, cart, wishlist and details onto this one first (see
+  // supabase/migrations/0007_sign_in_with_phone.sql), so signing back in
+  // restores them. No OTP is actually sent — see Phase 5 notes.
   attachPhone: async (phone) => {
     const userId = get().user?.id;
     if (!userId) throw new Error('No active session.');
-    const { error } = await supabase.from('profiles').update({ phone }).eq('id', userId);
-    if (error) throw error;
-    await get().refreshProfile();
+    const { error } = await supabase.rpc('sign_in_with_phone', { p_phone: phone });
+    if (error?.code === 'PGRST202') {
+      // Migration 0007 not applied yet: fall back to attaching a free number only.
+      const fallback = await supabase.from('profiles').update({ phone }).eq('id', userId);
+      if (fallback.error) throw fallback.error;
+    } else if (error) {
+      throw error;
+    }
+    // Same user id as before, so app/_layout.tsx won't re-hydrate on its own.
+    await Promise.all([
+      get().refreshProfile(),
+      useCartStore.getState().hydrate(userId),
+      useWishlistStore.getState().hydrate(userId),
+    ]);
   },
 
   updateFullName: async (name) => {
@@ -152,30 +165,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     );
   },
 
-  // Destroys the anonymous session entirely, so its cart/wishlist (scoped to
-  // that user_id) are cleared locally too, then bootstraps a brand new
-  // anonymous session with its own fresh profiles row. This POC has no
-  // cross-session data merge — signing out genuinely loses the old session's
-  // cart and wishlist, which the Profile screen must warn about before calling this.
+  // Destroys the anonymous session entirely, so its cart/wishlist are cleared
+  // locally too, then bootstraps a brand new anonymous session with its own
+  // fresh profiles row. The data itself stays on the old account, keyed by its
+  // phone number, until someone signs in with that number again.
   //
   // Deliberately leaves `loading` alone: app/_layout.tsx swaps the whole <Stack>
   // for <BrandSplash> while loading is true, which would unmount the navigator
   // mid-sign-out and dump the user back on the Home tab instead of Profile.
   // init() doesn't need loading:true to re-run — its early-return guard checks
   // `session`, which is already cleared below.
+  // Leaves the phone on the outgoing account on purpose: signing in with the
+  // same number later finds that account and restores its orders, cart and
+  // wishlist (attachPhone -> sign_in_with_phone).
   signOut: async () => {
-    // profiles.phone is unique, and this POC has no way to sign back into an
-    // abandoned anonymous session by phone — so without this, the number
-    // stays stuck on the old (now unreachable) account and can never be
-    // attached again, even by the same person re-entering it right after.
-    const outgoingUserId = get().user?.id;
-    if (outgoingUserId) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ phone: null })
-        .eq('id', outgoingUserId);
-      if (error) console.warn('Failed to release phone number before sign-out', error);
-    }
     await supabase.auth.signOut();
     useCartStore.getState().clear();
     useWishlistStore.getState().reset();

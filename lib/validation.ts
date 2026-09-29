@@ -2,6 +2,22 @@ import { z } from 'zod';
 
 export const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit mobile number');
 
+/**
+ * Cleans phone input as it's typed. Phone keyboards and autofill can insert
+ * spaces, dashes or "+91", and a raw maxLength={10} on the field then cuts the
+ * number short (e.g. "98765 43210" -> "98765 4321", only 9 digits). Use this
+ * in onChangeText instead of maxLength.
+ */
+export function normalizePhoneInput(text: string): string {
+  let digits = text.replace(/\D/g, '');
+  if (text.trim().startsWith('+') || (digits.length === 12 && digits.startsWith('91'))) {
+    digits = digits.replace(/^91/, '');
+  } else if (digits.length === 11 && digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+  return digits.slice(0, 10);
+}
+
 export const otpSchema = z.string().length(6, 'Enter the 6-digit code');
 
 /** The only "correct" code in this POC — no SMS is ever sent, see Phase 5 notes. */

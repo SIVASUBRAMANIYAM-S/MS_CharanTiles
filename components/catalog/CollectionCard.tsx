@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { Pressable, Text, View } from 'react-native';
 
+import { sizedImageUrl } from '@/lib/image';
 import { makeStyles, radius, typography } from '@/lib/theme';
 
 type CollectionCardProps = {
@@ -34,7 +35,7 @@ export function CollectionCard({
       <View style={styles.imageWrap}>
         {imageUrl ? (
           <Image
-            source={{ uri: imageUrl }}
+            source={{ uri: sizedImageUrl(imageUrl, width ?? 430) }}
             style={styles.image}
             contentFit="cover"
             transition={200}

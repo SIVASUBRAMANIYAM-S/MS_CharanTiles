@@ -41,6 +41,7 @@ import { capitalize, formatSize } from '@/lib/specs';
 import { FREE_SHIPPING_THRESHOLD } from '@/lib/shipping';
 import { useAuthStore } from '@/lib/store/auth';
 import { useWishlistStore } from '@/lib/store/wishlist';
+import { sizedImageUrl } from '@/lib/image';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 export default function ProductScreen() {
@@ -150,7 +151,7 @@ export default function ProductScreen() {
             {product.product_images.map((image) => (
               <Image
                 key={image.id}
-                source={{ uri: image.url }}
+                source={{ uri: sizedImageUrl(image.url, width) }}
                 style={[styles.galleryImage, { width, height: galleryHeight }]}
                 contentFit="cover"
                 transition={200}

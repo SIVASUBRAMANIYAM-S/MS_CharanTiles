@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Camera, CaretRight, MagnifyingGlass } from '@/components/ui/icons';
 import { useEffect, useState } from 'react';
@@ -9,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryCard } from '@/components/catalog/CategoryCard';
 import { CollectionCard } from '@/components/catalog/CollectionCard';
 import { FeaturedSpotlight } from '@/components/catalog/FeaturedSpotlight';
+import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { ProductCard } from '@/components/catalog/ProductCard';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -21,10 +21,6 @@ import { getFeaturedProducts, type ProductCardData } from '@/lib/queries/product
 import { useAuthStore } from '@/lib/store/auth';
 import { useWishlistStore } from '@/lib/store/wishlist';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
-
-// Marketing chrome, not DB-driven: the blue marble bathroom from the Ocean Mist listing.
-const HERO_IMAGE =
-  'https://images.unsplash.com/photo-1701251786408-d0320ecaad8d?w=1200&q=80&fm=jpg&fit=crop&auto=format';
 
 // The rest live on the "See all" featured screen.
 const FEATURED_ROW_LIMIT = 8;
@@ -70,37 +66,29 @@ export default function HomeScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
-        <View>
-          <Text style={styles.brand}>Charan Tiles</Text>
-          <Text style={styles.brandSub}>Tiles and surfaces</Text>
+        <View style={styles.brandRow}>
+          <View style={styles.logoBadge}>
+            <Image
+              // Metro resolves local image requires at bundle time; no ESM type exists for them.
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
+              source={require('@/assets/images/logo-mark.png')}
+              style={styles.logoMark}
+              tintColor={colors.accentInk}
+              contentFit="contain"
+              accessibilityIgnoresInvertColors
+            />
+          </View>
+          <View accessible accessibilityRole="header" accessibilityLabel="Charan Tiles">
+            <Text style={styles.brand}>Charan Tiles</Text>
+            <Text style={styles.brandSub}>Tiles and surfaces</Text>
+          </View>
         </View>
         <IconButton accessibilityLabel="Search tiles" onPress={() => router.push('/search')}>
           <MagnifyingGlass size={20} color={colors.text} weight="bold" />
         </IconButton>
       </View>
 
-      <View style={styles.hero}>
-        <Image
-          source={{ uri: HERO_IMAGE }}
-          style={styles.fill}
-          contentFit="cover"
-          transition={300}
-          accessibilityIgnoresInvertColors
-        />
-        <LinearGradient
-          colors={['rgba(8, 9, 11, 0.05)', 'rgba(8, 9, 11, 0.85)']}
-          start={{ x: 0, y: 0.25 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.fill}
-        />
-        <View style={styles.heroContent}>
-          <Text style={styles.heroTitle}>Tiles for every room</Text>
-          <Text style={styles.heroBody}>
-            Porcelain, vitrified and ceramic tiles, chosen for how they look in a real home.
-          </Text>
-          <Button label="Browse catalog" onPress={() => router.push('/catalog')} />
-        </View>
-      </View>
+      <HeroCarousel />
 
       <View style={styles.section}>
         <View style={styles.padded}>
@@ -129,25 +117,6 @@ export default function HomeScreen() {
                 </View>
               ))}
         </ScrollView>
-      </View>
-
-      <View style={styles.padded}>
-        <Card
-          variant="accent"
-          onPress={() => router.push('/find-tile')}
-          accessibilityLabel="Find a tile from a photo"
-        >
-          <View style={styles.promoRow}>
-            <View style={styles.promoIcon}>
-              <Camera size={22} color={colors.onAccent} weight="fill" />
-            </View>
-            <View style={styles.promoText}>
-              <Text style={styles.promoTitle}>Find a tile from a photo</Text>
-              <Text style={styles.promoBody}>Snap any surface and see our closest matches.</Text>
-            </View>
-            <CaretRight size={18} color={colors.accentInk} weight="bold" />
-          </View>
-        </Card>
       </View>
 
       <View style={styles.section}>
@@ -190,6 +159,25 @@ export default function HomeScreen() {
                 </View>
               ))}
         </ScrollView>
+      </View>
+
+      <View style={styles.padded}>
+        <Card
+          variant="accent"
+          onPress={() => router.push('/find-tile')}
+          accessibilityLabel="Find a tile from a photo"
+        >
+          <View style={styles.promoRow}>
+            <View style={styles.promoIcon}>
+              <Camera size={22} color={colors.onAccent} weight="fill" />
+            </View>
+            <View style={styles.promoText}>
+              <Text style={styles.promoTitle}>Find a tile from a photo</Text>
+              <Text style={styles.promoBody}>Snap any surface and see our closest matches.</Text>
+            </View>
+            <CaretRight size={18} color={colors.accentInk} weight="bold" />
+          </View>
+        </Card>
       </View>
 
       <View style={styles.section}>
@@ -248,20 +236,18 @@ const useStyles = makeStyles((c) => ({
     justifyContent: 'space-between',
     marginBottom: -16,
   },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  logoBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: c.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoMark: { width: 28, height: 28 },
   brand: { ...typography.h2, color: c.text },
   brandSub: { ...typography.caption, color: c.accentInk },
-  hero: {
-    marginHorizontal: 16,
-    aspectRatio: 4 / 5,
-    maxHeight: 520,
-    borderRadius: radius.xl,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-    backgroundColor: c.surfaceAlt,
-  },
-  heroContent: { padding: 22, gap: 10, alignItems: 'flex-start' },
-  heroTitle: { ...typography.display, color: c.onImage },
-  heroBody: { ...typography.body, color: c.onImage, opacity: 0.85, marginBottom: 6, maxWidth: 320 },
   section: { gap: 14 },
   hRow: { paddingHorizontal: 16, gap: 12 },
   categoryItem: { width: 132 },

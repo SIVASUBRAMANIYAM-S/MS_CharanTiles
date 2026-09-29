@@ -14,8 +14,8 @@ export async function getCategories(): Promise<Category[]> {
 // listed here (new rooms added later) falls back to alphabetical order and
 // is appended after these.
 const HOME_ROOM_ORDER = [
-  
   'kitchen-tiles',
+  'commercial-tiles',
   'bedroom-tiles',
   'outdoor-tiles',
   'living-room-tiles',

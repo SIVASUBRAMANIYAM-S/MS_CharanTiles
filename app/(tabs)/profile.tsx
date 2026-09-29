@@ -210,8 +210,8 @@ export default function ProfileScreen() {
             <View style={styles.confirm}>
               <Text style={styles.confirmTitle}>Sign out?</Text>
               <Text style={styles.confirmText}>
-                Your current cart and wishlist belong to this session and can&apos;t be recovered
-                after signing out.
+                Your orders, cart and wishlist stay with +91 {profile.phone}. Sign in with this
+                number again to get them back.
               </Text>
               <View style={styles.confirmRow}>
                 <Button

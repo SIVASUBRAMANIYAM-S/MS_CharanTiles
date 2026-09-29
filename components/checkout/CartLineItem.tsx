@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { formatRupees } from '@/components/ui/Price';
 import type { CartLineDetail } from '@/lib/queries/cart';
+import { sizedImageUrl } from '@/lib/image';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 type CartLineItemProps = {
@@ -30,7 +31,11 @@ export function CartLineItem({
     <View style={styles.row}>
       <View style={styles.imageWrap}>
         {line.imageUrl ? (
-          <Image source={{ uri: line.imageUrl }} style={styles.image} contentFit="cover" />
+          <Image
+            source={{ uri: sizedImageUrl(line.imageUrl, 92) }}
+            style={styles.image}
+            contentFit="cover"
+          />
         ) : null}
       </View>
 

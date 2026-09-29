@@ -8,6 +8,7 @@ export type { Icon, IconProps, IconWeight } from 'phosphor-react-native';
 export { ArrowRightIcon as ArrowRight } from 'phosphor-react-native/src/icons/ArrowRight';
 export { CalendarCheckIcon as CalendarCheck } from 'phosphor-react-native/src/icons/CalendarCheck';
 export { CameraIcon as Camera } from 'phosphor-react-native/src/icons/Camera';
+export { CaretLeftIcon as CaretLeft } from 'phosphor-react-native/src/icons/CaretLeft';
 export { CaretRightIcon as CaretRight } from 'phosphor-react-native/src/icons/CaretRight';
 export { ChatCircleTextIcon as ChatCircleText } from 'phosphor-react-native/src/icons/ChatCircleText';
 export { CheckIcon as Check } from 'phosphor-react-native/src/icons/Check';

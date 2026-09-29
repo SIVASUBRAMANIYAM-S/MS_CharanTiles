@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useFallbackHeaderLeft } from '@/components/ui/FallbackBack';
 import { formatRupees } from '@/components/ui/Price';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { getOrdersByUser, type OrderSummary } from '@/lib/queries/orders';
@@ -40,6 +41,7 @@ const dateFormat = new Intl.DateTimeFormat('en-IN', {
 export default function OrderHistoryScreen() {
   const { colors } = useTheme();
   const styles = useStyles();
+  const headerLeft = useFallbackHeaderLeft('/profile');
   const userId = useAuthStore((state) => state.user?.id);
   const [orders, setOrders] = useState<OrderSummary[] | null>(null);
 
@@ -55,7 +57,7 @@ export default function OrderHistoryScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Orders' }} />
+      <Stack.Screen options={{ title: 'Orders', headerLeft }} />
       <Text style={styles.title}>Order history</Text>
 
       {orders === null ? (

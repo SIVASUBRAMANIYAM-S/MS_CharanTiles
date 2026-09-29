@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { IconButton } from '@/components/ui/IconButton';
 import { Price } from '@/components/ui/Price';
 import type { ProductCardFields } from '@/lib/queries/products';
+import { sizedImageUrl } from '@/lib/image';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 
 type ProductCardProps = {
@@ -40,7 +41,7 @@ export function ProductCard({
         <View style={styles.imageWrap}>
           {image ? (
             <Image
-              source={{ uri: image.url }}
+              source={{ uri: sizedImageUrl(image.url, 220) }}
               style={styles.image}
               contentFit="cover"
               transition={200}

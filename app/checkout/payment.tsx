@@ -136,12 +136,12 @@ export default function CheckoutPaymentScreen() {
       // navigation. Confirmation resets it instead, once this screen is covered.
       //
       // dismissAll() first: address/review/payment were all pushed onto the
-      // stack, so a plain replace() here would leave them underneath
-      // confirmation — back from "View order" would land back in checkout
-      // instead of on a tab screen. Dismissing back to the tab root before
-      // placing confirmation on top fixes that for every screen reached from here.
+      // stack. Then push (not replace) so confirmation sits directly on top of
+      // the tabs: replace() here would swap out the tabs screen itself, leaving
+      // confirmation — and the order screen opened from it — with nothing to go
+      // back to.
       router.dismissAll();
-      router.replace({ pathname: '/checkout/confirmation', params: { orderId } });
+      router.push({ pathname: '/checkout/confirmation', params: { orderId } });
     } catch (error) {
       console.warn('Order creation failed', error);
       setSubmitError('We could not place your order. Check your connection and try again.');

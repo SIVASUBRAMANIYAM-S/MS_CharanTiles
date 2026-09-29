@@ -19,11 +19,13 @@ import {
 } from '@/lib/queries/inquiries';
 import { getProductById, type ProductWithDetails } from '@/lib/queries/products';
 import { useAuthStore } from '@/lib/store/auth';
+import { sizedImageUrl } from '@/lib/image';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
 import {
   enquiryMessageSchema,
   fullNameSchema,
   optionalEmailSchema,
+  normalizePhoneInput,
   phoneSchema,
 } from '@/lib/validation';
 
@@ -148,7 +150,11 @@ export default function EnquiryScreen() {
       ) : product ? (
         <View style={styles.productRow}>
           {primaryImage ? (
-            <Image source={{ uri: primaryImage }} style={styles.productImage} contentFit="cover" />
+            <Image
+              source={{ uri: sizedImageUrl(primaryImage, 60) }}
+              style={styles.productImage}
+              contentFit="cover"
+            />
           ) : (
             <View style={styles.productImage} />
           )}
@@ -185,10 +191,9 @@ export default function EnquiryScreen() {
           render={({ field: { value, onChange, onBlur } }) => (
             <Input
               label="Phone number"
-              keyboardType="phone-pad"
-              maxLength={10}
+              keyboardType="number-pad"
               value={value}
-              onChangeText={onChange}
+              onChangeText={(text) => onChange(normalizePhoneInput(text))}
               onBlur={onBlur}
               error={errors.phone?.message}
               autoComplete="tel"

@@ -8,7 +8,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-na
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { makeStyles, radius, typography, useTheme } from '@/lib/theme';
-import { phoneSchema } from '@/lib/validation';
+import { normalizePhoneInput, phoneSchema } from '@/lib/validation';
 
 type FormValues = { phone: string };
 
@@ -74,10 +74,9 @@ export default function LoginScreen() {
             <Input
               label="Phone number"
               placeholder="10-digit mobile number"
-              keyboardType="phone-pad"
-              maxLength={10}
+              keyboardType="number-pad"
               value={value}
-              onChangeText={onChange}
+              onChangeText={(text) => onChange(normalizePhoneInput(text))}
               onBlur={onBlur}
               error={errors.phone?.message}
               autoComplete="tel"
